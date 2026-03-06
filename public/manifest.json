@@ -1,0 +1,43 @@
+{
+  "name": "AXIOM — Log Server",
+  "short_name": "AXIOM",
+  "description": "Real-time Linux log viewer with AI-powered interactive analysis.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c0a08",
+  "theme_color": "#f59e0b",
+  "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "/icon-16x16.png",            "type": "image/png", "sizes": "16x16",   "purpose": "any" },
+    { "src": "/icon-32x32.png",            "type": "image/png", "sizes": "32x32",   "purpose": "any" },
+    { "src": "/icon-48x48.png",            "type": "image/png", "sizes": "48x48",   "purpose": "any" },
+    { "src": "/icon-57x57.png",            "type": "image/png", "sizes": "57x57",   "purpose": "any" },
+    { "src": "/icon-60x60.png",            "type": "image/png", "sizes": "60x60",   "purpose": "any" },
+    { "src": "/icon-72x72.png",            "type": "image/png", "sizes": "72x72",   "purpose": "any" },
+    { "src": "/icon-76x76.png",            "type": "image/png", "sizes": "76x76",   "purpose": "any" },
+    { "src": "/icon-96x96.png",            "type": "image/png", "sizes": "96x96",   "purpose": "any" },
+    { "src": "/icon-114x114.png",          "type": "image/png", "sizes": "114x114", "purpose": "any" },
+    { "src": "/icon-120x120.png",          "type": "image/png", "sizes": "120x120", "purpose": "any" },
+    { "src": "/icon-128x128.png",          "type": "image/png", "sizes": "128x128", "purpose": "any" },
+    { "src": "/icon-144x144.png",          "type": "image/png", "sizes": "144x144", "purpose": "any" },
+    { "src": "/icon-152x152.png",          "type": "image/png", "sizes": "152x152", "purpose": "any" },
+    { "src": "/icon-167x167.png",          "type": "image/png", "sizes": "167x167", "purpose": "any" },
+    { "src": "/icon-180x180.png",          "type": "image/png", "sizes": "180x180", "purpose": "any" },
+    { "src": "/icon-192x192.png",          "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-256x256.png",          "type": "image/png", "sizes": "256x256", "purpose": "any" },
+    { "src": "/icon-384x384.png",          "type": "image/png", "sizes": "384x384", "purpose": "any" },
+    { "src": "/icon-512x512.png",          "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-192x192-maskable.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
+    { "src": "/icon-512x512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" },
+    { "src": "/favicon.svg",               "type": "image/svg+xml", "sizes": "any", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "System Logs",  "url": "/?src=syslog", "icons": [{"src":"/icon-96x96.png","sizes":"96x96"}] },
+    { "name": "Auth Logs",    "url": "/?src=auth",   "icons": [{"src":"/icon-96x96.png","sizes":"96x96"}] },
+    { "name": "Docker Logs",  "url": "/?src=docker", "icons": [{"src":"/icon-96x96.png","sizes":"96x96"}] }
+  ]
+}

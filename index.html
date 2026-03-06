@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+
+  <title>AXIOM — Log Server</title>
+  <meta name="description"     content="Real-time Linux log viewer with AI-powered interactive analysis."/>
+  <meta name="application-name" content="AXIOM"/>
+  <meta name="robots"          content="noindex, nofollow"/>
+
+  <!-- Theme / color -->
+  <meta name="theme-color"              content="#f59e0b"/>
+  <meta name="color-scheme"             content="dark"/>
+  <meta name="msapplication-TileColor"  content="#0c0a08"/>
+  <meta name="msapplication-TileImage"  content="/icon-144x144.png"/>
+  <meta name="msapplication-config"     content="none"/>
+
+  <!-- iOS / Safari PWA -->
+  <meta name="apple-mobile-web-app-capable"          content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title"            content="AXIOM"/>
+  <meta name="format-detection"                      content="telephone=no"/>
+
+  <!-- Apple touch icons — all sizes -->
+  <link rel="apple-touch-icon"                                    href="/apple-touch-icon.png"/>
+  <link rel="apple-touch-icon" sizes="57x57"   href="/apple-touch-icon-57x57.png"/>
+  <link rel="apple-touch-icon" sizes="60x60"   href="/apple-touch-icon-60x60.png"/>
+  <link rel="apple-touch-icon" sizes="72x72"   href="/apple-touch-icon-72x72.png"/>
+  <link rel="apple-touch-icon" sizes="76x76"   href="/apple-touch-icon-76x76.png"/>
+  <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png"/>
+  <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png"/>
+  <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png"/>
+  <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png"/>
+
+  <!-- Android / Chrome PWA -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+
+  <!-- Firefox + general favicons -->
+  <link rel="icon" type="image/x-icon"   href="/favicon.ico"/>
+  <link rel="icon" type="image/svg+xml"  href="/favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="16x16"   href="/icon-16x16.png"/>
+  <link rel="icon" type="image/png" sizes="32x32"   href="/icon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="48x48"   href="/icon-48x48.png"/>
+  <link rel="icon" type="image/png" sizes="96x96"   href="/icon-96x96.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png"/>
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png"/>
+
+  <!-- Firefox pinned-tab mask-icon -->
+  <link rel="mask-icon"    href="/favicon.svg" color="#f59e0b"/>
+  <link rel="shortcut icon" href="/favicon.ico"/>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json"/>
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website"/>
+  <meta property="og:title"       content="AXIOM — Log Server"/>
+  <meta property="og:description" content="Real-time Linux log viewer with AI analysis."/>
+  <meta property="og:image"       content="/icon-512x512.png"/>
+  <meta name="twitter:card"        content="summary"/>
+  <meta name="twitter:title"       content="AXIOM"/>
+  <meta name="twitter:image"       content="/icon-192x192.png"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{
+      background:#0c0a08;
+      height:100%;
+      -webkit-font-smoothing:antialiased;
+    }
+    body{
+      padding-top:env(safe-area-inset-top);
+      padding-right:env(safe-area-inset-right);
+      padding-bottom:env(safe-area-inset-bottom);
+      padding-left:env(safe-area-inset-left);
+    }
+    #root{min-height:100vh;min-height:100dvh}
+
+    /* ── Splash ── */
+    #splash{
+      position:fixed;inset:0;z-index:9999;
+      background:#0c0a08;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+      transition:opacity 0.6s ease;
+    }
+    #splash.gone{opacity:0;pointer-events:none}
+
+    #splash-hex{
+      width:90px;height:90px;
+      animation:hex-breathe 2s ease-in-out infinite;
+    }
+    #splash-name{
+      margin-top:24px;
+      font-family:'Syne',sans-serif;
+      font-size:32px;font-weight:800;
+      color:#f59e0b;
+      letter-spacing:12px;
+      text-shadow:0 0 40px #f59e0b88,0 0 80px #f59e0b22;
+    }
+    #splash-sub{
+      margin-top:6px;
+      font-family:'Space Mono',monospace;
+      font-size:9px;letter-spacing:5px;
+      color:#3d3228;text-transform:uppercase;
+    }
+    #splash-track{margin-top:32px;width:180px;height:1px;background:#1e1c18;border-radius:2px;overflow:hidden}
+    #splash-fill{
+      height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);
+      animation:fill-run 1.8s ease-out forwards;
+      border-radius:2px;
+    }
+    #splash-dots{margin-top:18px;display:flex;gap:7px}
+    .sdot{
+      width:4px;height:4px;border-radius:50%;background:#f59e0b;
+      animation:dot-pop 1.6s ease-in-out infinite;
+    }
+    .sdot:nth-child(2){animation-delay:.18s}
+    .sdot:nth-child(3){animation-delay:.36s}
+
+    @keyframes hex-breathe{0%,100%{filter:drop-shadow(0 0 8px #f59e0b44);transform:scale(1)}50%{filter:drop-shadow(0 0 28px #f59e0baa);transform:scale(1.06)}}
+    @keyframes fill-run{from{width:0}to{width:100%}}
+    @keyframes dot-pop{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.4)}}
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <svg id="splash-hex" viewBox="0 0 64 64" fill="none">
+    <rect width="64" height="64" rx="11" fill="#0c0a08"/>
+    <polygon points="32,6 56,19 56,45 32,58 8,45 8,19"
+             stroke="#f59e0b" stroke-width="2.2" fill="none" stroke-linejoin="round"/>
+    <line x1="17" y1="28" x2="47" y2="28" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="17" y1="36" x2="41" y2="36" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+    <line x1="17" y1="44" x2="44" y2="44" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" opacity="0.25"/>
+    <circle cx="47" cy="22" r="4" fill="#f87171"/>
+  </svg>
+  <div id="splash-name">AXIOM</div>
+  <div id="splash-sub">Log Server · AI Analysis · v1.0</div>
+  <div id="splash-track"><div id="splash-fill"></div></div>
+  <div id="splash-dots"><div class="sdot"></div><div class="sdot"></div><div class="sdot"></div></div>
+</div>
+
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
+<script>
+  window.__axiomHideSplash = function(){
+    var el=document.getElementById('splash');
+    if(!el) return;
+    el.classList.add('gone');
+    setTimeout(function(){el&&el.parentNode&&el.parentNode.removeChild(el);},700);
+  };
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
+  }
+</script>
+</body>
+</html>
