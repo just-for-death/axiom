@@ -14,9 +14,7 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 
-RUN --network=host \
-    apt-get update -o Acquire::ForceIPv4=true || \
-    (echo "nameserver 8.8.8.8" > /etc/resolv.conf && apt-get update) && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         smartmontools \
         util-linux \
@@ -36,8 +34,7 @@ COPY --from=builder /app/dist /app/dist
 COPY main.py .
 
 ENV OLLAMA_HOST=http://host.docker.internal:11434
-ENV GOTIFY_HOST=
-ENV GOTIFY_TOKEN=
+ENV GOTIFY_HOST=""
 
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \

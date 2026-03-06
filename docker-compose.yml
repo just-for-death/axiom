@@ -11,7 +11,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
     container_name: axiom
     restart: unless-stopped
     user: root
