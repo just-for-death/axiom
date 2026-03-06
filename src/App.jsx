@@ -286,7 +286,7 @@ function AskPanel({ sourceId, logLines, onClose }) {
       }
 
       {/* Input row */}
-      <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderTop:`1px solid ${T.border}`}}>
+      <div className="ask-input-row" style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderTop:`1px solid ${T.border}`}}>
         <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();} }}
           placeholder="Ask about errors, root cause, fixes…"
@@ -475,16 +475,31 @@ export default function App() {
           background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
         }
 
-        /* Mobile: hide sidebar text */
-        @media(max-width:600px){
-          .side-label,.side-desc{display:none!important}
-          .side-rail{width:52px!important}
+        /* ── Android / Mobile PWA ── */
+        .bottom-nav{display:none}
+        .top-controls-mobile{display:none}
+        @media(max-width:700px){
+          .side-rail{display:none!important}
+          .bottom-nav{display:flex!important}
           .logo-text{display:none!important}
+          .top-controls-full{display:none!important}
+          .top-controls-mobile{display:flex!important}
+          .toolbar-row{gap:6px!important}
+          .lines-select{display:none!important}
+          .log-font{font-size:12px!important;line-height:1.8!important}
+          .log-gutter{width:34px!important;padding-right:6px!important;padding-left:4px!important;font-size:8px!important}
+          .log-text{padding-left:8px!important;padding-right:8px!important}
+          .footer-bar{display:none!important}
+          .ai-panel-wrap{padding:6px 8px 0!important}
+          .ask-input-row{padding:8px 10px env(safe-area-inset-bottom,8px)!important}
+          .search-box{flex:1!important;min-width:0!important}
+          .sev-chip-label{display:none!important}
+          .header-root{height:52px!important}
         }
       `}</style>
 
       {/* ════════════════════════════════════════════════════════════ TOP BAR */}
-      <header style={{
+      <header className="header-root" style={{
         height:54,flexShrink:0,
         display:"flex",alignItems:"center",
         borderBottom:`1px solid ${T.border}`,
@@ -514,15 +529,43 @@ export default function App() {
         {/* Spacer */}
         <div style={{flex:1}}/>
 
-        {/* Clock */}
-        <div style={{marginRight:16,fontFamily:"'Space Mono',monospace",fontSize:10,
+        {/* Mobile: compact AI + refresh buttons */}
+        <div className="top-controls-mobile" style={{gap:6,alignItems:"center",marginRight:4}}>
+          {canAI && (
+            <>
+              <IconBtn
+                active={aiMode==="analyze"} color={T.amber}
+                onClick={() => { setAiMode(m => m==="analyze"?null:"analyze"); setAiKey(k=>k+1); }}
+                title="Analyze">
+                <AiIcon sz={16} col={aiMode==="analyze"?T.amber:T.tx1}/>
+              </IconBtn>
+              <IconBtn
+                active={aiMode==="chat"} color={T.ai}
+                onClick={() => setAiMode(m => m==="chat"?null:"chat")}
+                title="Ask AI">
+                <ChatIcon sz={16} col={aiMode==="chat"?T.ai:T.tx1}/>
+              </IconBtn>
+            </>
+          )}
+          <IconBtn active={autoRefresh} color={T.good}
+            onClick={() => setAutoRefresh(a=>!a)} title={autoRefresh?"Pause":"Live"}>
+            <LiveIcon sz={16} col={autoRefresh?T.good:T.tx1}/>
+          </IconBtn>
+          <IconBtn active={false} color={T.tx1}
+            onClick={() => fetchLogs(activeId, lineCount)} title="Refresh">
+            <RefreshIcon sz={16} col={T.tx1}/>
+          </IconBtn>
+        </div>
+
+        {/* Desktop: Clock */}
+        <div className="top-controls-full" style={{marginRight:16,fontFamily:"'Space Mono',monospace",fontSize:10,
           color:T.tx1,letterSpacing:1,display:"flex",alignItems:"center",gap:10}}>
           <span style={{color:T.tx0}}>{now.toLocaleTimeString()}</span>
           <span style={{color:T.tx2,fontSize:9}}>{now.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
         </div>
 
-        {/* Controls */}
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        {/* Desktop: Controls */}
+        <div className="top-controls-full" style={{display:"flex",gap:6,alignItems:"center"}}>
           <PillBtn
             active={autoRefresh}
             color={autoRefresh ? T.good : T.tx1}
@@ -650,7 +693,7 @@ export default function App() {
         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
           {/* ──────────────────────────────── TOOLBAR */}
-          <div style={{
+          <div className="toolbar-row" style={{
             display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",
             padding:"7px 14px",borderBottom:`1px solid ${T.border}`,
             background:T.bg1,flexShrink:0,
@@ -670,21 +713,21 @@ export default function App() {
             {/* Push right */}
             <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
               {/* Search */}
-              <div style={{display:"flex",alignItems:"center",gap:8,
+              <div className="search-box" style={{display:"flex",alignItems:"center",gap:8,
                 background:T.bg0,border:`1px solid ${T.border2}`,borderRadius:8,
-                padding:"5px 12px",transition:"border-color .15s"}}
+                padding:"5px 12px",transition:"border-color .15s",minWidth:160}}
                 onFocus={()=>{}} >
                 <SearchIcon sz={13} col={T.tx2}/>
                 <input value={search} onChange={e=>setSearch(e.target.value)}
                   placeholder="filter…"
                   style={{background:"none",border:"none",outline:"none",
-                    color:T.tx0,fontSize:11,width:110,fontFamily:"'Space Mono',monospace"}}/>
+                    color:T.tx0,fontSize:11,width:"100%",minWidth:0,fontFamily:"'Space Mono',monospace"}}/>
                 {search && <button onClick={()=>setSearch("")}
                   style={{background:"none",border:"none",color:T.tx2,cursor:"pointer",fontSize:14,lineHeight:1,padding:0}}>×</button>}
               </div>
 
               {/* Lines selector */}
-              <select value={lineCount}
+              <select className="lines-select" value={lineCount}
                 onChange={e=>{const n=+e.target.value;setLineCount(n);fetchLogs(activeId,n);}}
                 style={{background:T.bg0,border:`1px solid ${T.border2}`,color:T.tx1,
                   borderRadius:8,padding:"5px 10px",fontSize:10,cursor:"pointer",
@@ -696,7 +739,7 @@ export default function App() {
 
           {/* ──────────────────────────────── AI PANELS */}
           {aiMode && canAI && (
-            <div style={{padding:"8px 14px 0",flexShrink:0}}>
+            <div className="ai-panel-wrap" style={{padding:"8px 14px 0",flexShrink:0}}>
               {aiMode==="analyze" && <AnalysisPanel key={aiKey} sourceId={activeId} onClose={()=>setAiMode(null)}/>}
               {aiMode==="chat"    && <AskPanel sourceId={activeId} logLines={entries} onClose={()=>setAiMode(null)}/>}
             </div>
@@ -728,7 +771,7 @@ export default function App() {
                     fontFamily:"'Space Mono',monospace",fontSize:11}}>
                     {search?"No lines match that filter":"No log entries found"}
                   </p>
-                : <div style={{fontFamily:"'Space Mono',monospace",fontSize:10.5,lineHeight:1.7}}>
+                : <div className="log-font" style={{fontFamily:"'Space Mono',monospace",fontSize:10.5,lineHeight:1.7}}>
                     {filtered.map((line,i) => {
                       const t = classify(line);
                       const s = L[t];
@@ -741,14 +784,14 @@ export default function App() {
                             color:s.color,
                           }}>
                           {/* Line number gutter */}
-                          <span style={{
+                          <span className="log-gutter" style={{
                             flexShrink:0,width:46,textAlign:"right",
                             paddingRight:12,paddingLeft:8,
                             color:T.tx2,fontSize:9,userSelect:"none",
                             borderRight:`1px solid ${T.border}`,
                             lineHeight:1.7,
                           }}>{i+1}</span>
-                          <span style={{
+                          <span className="log-text" style={{
                             flex:1,paddingLeft:12,paddingRight:14,
                             whiteSpace:"pre-wrap",wordBreak:"break-all",
                           }}>{line}</span>
@@ -760,7 +803,7 @@ export default function App() {
           </div>
 
           {/* ──────────────────────────────── STATUS BAR */}
-          <footer style={{
+          <footer className="footer-bar" style={{
             display:"flex",alignItems:"center",justifyContent:"space-between",
             padding:"4px 14px",
             borderTop:`1px solid ${T.border}`,
@@ -783,6 +826,51 @@ export default function App() {
           </footer>
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════ BOTTOM NAV (mobile only) */}
+      <nav className="bottom-nav" style={{
+        flexShrink:0,
+        borderTop:`1px solid ${T.border}`,
+        background:T.bg1,
+        alignItems:"stretch",
+        paddingBottom:"env(safe-area-inset-bottom,0px)",
+        zIndex:100,
+      }}>
+        {SOURCES.map((s) => {
+          const active = s.id===activeId;
+          const Ic = s.icon;
+          return (
+            <button key={s.id}
+              onClick={() => setActiveId(s.id)}
+              style={{
+                flex:1, display:"flex", flexDirection:"column",
+                alignItems:"center", justifyContent:"center",
+                gap:3, padding:"8px 2px 6px",
+                background:"transparent", border:"none",
+                cursor:"pointer",
+                borderTop:`2px solid ${active ? s.color : "transparent"}`,
+                transition:"all .12s",
+                minWidth:0,
+              }}>
+              <div style={{
+                width:28,height:28,borderRadius:7,
+                background:active?`${s.color}18`:T.bg2,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                transition:"all .12s",
+              }}>
+                <Ic sz={14} col={active?s.color:T.tx2}/>
+              </div>
+              <span style={{
+                fontFamily:"'Space Mono',monospace",fontSize:7,
+                color:active?s.color:T.tx2,
+                letterSpacing:.3,
+                whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+                maxWidth:"100%",
+              }}>{s.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
@@ -806,6 +894,22 @@ function PillBtn({ active, color, onClick, title, children }) {
   );
 }
 
+function IconBtn({ active, color, onClick, title, children }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{
+        width:40,height:40,borderRadius:9,
+        display:"flex",alignItems:"center",justifyContent:"center",
+        cursor:"pointer",
+        background:active?`${color}18`:"transparent",
+        border:`1px solid ${active?color+"55":T.border2}`,
+        transition:"all .12s",flexShrink:0,
+      }}>
+      {children}
+    </button>
+  );
+}
+
 function SevChip({ col, label, n }) {
   return (
     <div style={{
@@ -814,7 +918,7 @@ function SevChip({ col, label, n }) {
       fontFamily:"'Space Mono',monospace",fontSize:8,color:col,letterSpacing:.5,
     }}>
       <div style={{width:5,height:5,borderRadius:"50%",background:col,animation:col===T.crit?"glow-crit 1.8s infinite":undefined}}/>
-      {label} <b>{n}</b>
+      <span className="sev-chip-label">{label}</span> <b>{n}</b>
     </div>
   );
 }
