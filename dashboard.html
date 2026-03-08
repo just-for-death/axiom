@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,interactive-widget=resizes-content"/>
+<title>AXIOM · Fleet Dashboard</title>
+
+<!-- App meta -->
+<meta name="description"      content="AXIOM Fleet — real-time monitoring for all your nodes."/>
+<meta name="application-name" content="AXIOM Fleet"/>
+<meta name="robots"           content="noindex, nofollow"/>
+
+<!-- Theme / colour -->
+<meta name="theme-color"             content="#f59e0b"/>
+<meta name="color-scheme"            content="dark"/>
+<meta name="msapplication-TileColor" content="#0c0a08"/>
+<meta name="msapplication-TileImage" content="/fleet-icon-144x144.png"/>
+<meta name="msapplication-config"    content="none"/>
+
+<!-- iOS / Safari PWA -->
+<meta name="apple-mobile-web-app-capable"          content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title"            content="AXIOM Fleet"/>
+<meta name="format-detection"                      content="telephone=no"/>
+
+<!-- Apple touch icons — Fleet Dashboard specific -->
+<link rel="apple-touch-icon"                                    href="/apple-touch-fleet.png"/>
+<link rel="apple-touch-icon" sizes="57x57"   href="/apple-touch-fleet-57x57.png"/>
+<link rel="apple-touch-icon" sizes="60x60"   href="/apple-touch-fleet-60x60.png"/>
+<link rel="apple-touch-icon" sizes="72x72"   href="/apple-touch-fleet-72x72.png"/>
+<link rel="apple-touch-icon" sizes="76x76"   href="/apple-touch-fleet-76x76.png"/>
+<link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-fleet-114x114.png"/>
+<link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-fleet-120x120.png"/>
+<link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-fleet-144x144.png"/>
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-fleet-152x152.png"/>
+<link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-fleet-167x167.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-fleet-180x180.png"/>
+
+<!-- Android / Chrome PWA -->
+<meta name="mobile-web-app-capable" content="yes"/>
+
+<!-- Favicons — Fleet Dashboard specific -->
+<link rel="icon" type="image/svg+xml" href="/fleet-favicon.svg"/>
+<link rel="icon" type="image/png" sizes="16x16"   href="/fleet-icon-16x16.png"/>
+<link rel="icon" type="image/png" sizes="32x32"   href="/fleet-icon-32x32.png"/>
+<link rel="icon" type="image/png" sizes="48x48"   href="/fleet-icon-48x48.png"/>
+<link rel="icon" type="image/png" sizes="96x96"   href="/fleet-icon-96x96.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="/fleet-icon-192x192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="/fleet-icon-512x512.png"/>
+<link rel="mask-icon"     href="/fleet-favicon.svg" color="#f59e0b"/>
+<link rel="shortcut icon" href="/fleet-icon-32x32.png"/>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest-fleet.json"/>
+
+<!-- Open Graph -->
+<meta property="og:type"        content="website"/>
+<meta property="og:title"       content="AXIOM Fleet Dashboard"/>
+<meta property="og:description" content="Real-time monitoring for all your nodes."/>
+<meta property="og:image"       content="/fleet-icon-512x512.png"/>
+<meta name="twitter:card"  content="summary"/>
+<meta name="twitter:title" content="AXIOM Fleet"/>
+<meta name="twitter:image" content="/fleet-icon-192x192.png"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0c0a08;--bg1:#111009;--bg2:#1a1712;--bg3:#24211c;
+  --border:#2a2720;--border2:#3a3428;
+  --amber:#f59e0b;--amber-dim:#a07020;--amber-glow:rgba(245,158,11,.12);
+  --good:#34d399;--warn:#fbbf24;--err:#fb923c;--crit:#f87171;
+  --tx1:#e8dfc8;--tx2:#7a6f5a;--tx3:#4a4035;
+  --red:#f87171;--blue:#818cf8;--green:#34d399;
+}
+html,body{background:var(--bg0);min-height:100vh;font-family:'Space Mono',monospace;color:var(--tx1);-webkit-font-smoothing:antialiased}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:14px;
+  padding:0 20px;height:56px;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--amber);letter-spacing:1px}
+.brand-sub{font-size:9px;color:var(--tx2);letter-spacing:2px;margin-top:-2px}
+.brand-logo-wrap{display:flex;flex-direction:column}
+#topbar .spacer{flex:1}
+#topbar .clock{font-size:11px;color:var(--tx2);text-align:right;line-height:1.4}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.8px;
+  background:var(--bg2);border:1px solid var(--border);
+  color:var(--tx2);
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
+.status-dot.live{background:var(--good);box-shadow:0 0 8px var(--good);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── CONFIG PANEL ── */
+#config-wrap{
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;
+}
+#config-wrap label{font-size:10px;color:var(--tx2);letter-spacing:.8px;display:block;margin-bottom:5px}
+.config-textarea{
+  width:100%;min-width:320px;height:70px;resize:vertical;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  color:var(--tx1);font-family:'Space Mono',monospace;font-size:11px;padding:8px 12px;
+  outline:none;transition:border-color .2s;
+}
+.config-textarea:focus{border-color:var(--amber-dim)}
+.config-col{flex:1;min-width:260px}
+.config-actions{display:flex;align-items:flex-end;gap:8px;padding-bottom:2px}
+.pill-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;border:1px solid var(--border2);
+  background:var(--bg2);color:var(--tx2);font-family:'Space Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:.7px;cursor:pointer;
+  transition:border-color .2s,color .2s,background .2s;white-space:nowrap;
+}
+.pill-btn:hover{border-color:var(--amber-dim);color:var(--amber)}
+.pill-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-glow)}
+.pill-btn.danger:hover{border-color:var(--err);color:var(--err)}
+.toggle-config-btn{
+  background:none;border:none;color:var(--tx2);font-family:'Space Mono',monospace;
+  font-size:10px;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0;
+  transition:color .2s;letter-spacing:.5px;
+}
+.toggle-config-btn:hover{color:var(--amber)}
+
+/* ── GRID ── */
+#grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(500px,1fr));
+  gap:20px;padding:24px;
+}
+
+/* ── NODE CARD ── */
+.node-card{
+  background:var(--bg1);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;transition:border-color .3s,box-shadow .3s;
+}
+.node-card:hover{border-color:var(--border2);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.node-card.online{border-color:rgba(245,158,11,.2)}
+.node-card.offline{border-color:rgba(248,113,113,.15);opacity:.75}
+.node-card.loading{border-color:var(--border)}
+
+.card-header{
+  display:flex;align-items:center;gap:10px;
+  padding:18px 20px 14px;border-bottom:1px solid var(--border);
+}
+.node-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.node-dot.online{background:var(--good);box-shadow:0 0 10px var(--good);animation:pulse 2s infinite}
+.node-dot.offline{background:var(--red)}
+.node-dot.loading{background:var(--tx3);animation:pulse 1s infinite}
+.card-title{flex:1;min-width:0}
+.card-node-name{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--tx1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-node-url{font-size:9px;color:var(--tx2);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-role-badge{
+  font-size:8px;font-weight:700;letter-spacing:1px;padding:3px 7px;border-radius:10px;
+  background:var(--bg2);color:var(--tx2);border:1px solid var(--border2);flex-shrink:0;
+}
+.card-role-badge.main{color:var(--amber);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06)}
+.card-role-badge.agent{color:var(--green);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.06)}
+
+.card-body{padding:18px 20px}
+
+/* Skeleton */
+.skel{
+  background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);
+  background-size:200% 100%;border-radius:4px;animation:shimmer 1.5s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.offline-msg{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:28px 0;color:var(--red);font-size:11px;opacity:.7;
+}
+.offline-msg svg{opacity:.5}
+
+/* ── METRIC ROWS ── */
+.metric-section{margin-bottom:16px}
+.metric-section:last-child{margin-bottom:0}
+.metric-label{font-size:9px;color:var(--tx2);letter-spacing:1px;margin-bottom:8px;font-weight:700}
+.metric-row{display:flex;align-items:center;gap:12px;margin-bottom:7px}
+.metric-row:last-child{margin-bottom:0}
+.metric-name{font-size:11px;color:var(--tx2);width:56px;flex-shrink:0;white-space:nowrap}
+.metric-bar-wrap{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.metric-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.metric-bar.low{background:var(--good)}
+.metric-bar.mid{background:var(--warn)}
+.metric-bar.high{background:var(--err)}
+.metric-bar.critical{background:var(--crit)}
+.metric-val{font-size:11px;color:var(--tx1);width:90px;text-align:right;flex-shrink:0;white-space:nowrap}
+.metric-pct{font-size:11px;color:var(--tx2);width:38px;text-align:right;flex-shrink:0}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;display:flex;flex-direction:column;gap:4px;
+}
+.stat-box-label{font-size:9px;color:var(--tx2);letter-spacing:1px}
+.stat-box-val{font-size:16px;font-weight:700;color:var(--tx1)}
+.stat-box-sub{font-size:10px;color:var(--tx2)}
+
+.throttle-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700;margin-right:5px;margin-bottom:5px;
+}
+.throttle-ok{background:rgba(52,211,153,.08);color:var(--good);border:1px solid rgba(52,211,153,.25)}
+.throttle-warn{background:rgba(251,146,60,.08);color:var(--err);border:1px solid rgba(251,146,60,.25)}
+
+.card-footer{
+  padding:10px 20px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;color:var(--tx3);
+}
+.card-footer .uptime{color:var(--tx2)}
+.card-footer .spacer{flex:1}
+.card-footer .fetched{color:var(--tx3)}
+
+/* Add node form */
+#add-node-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 20px 0;
+}
+
+/* Empty state */
+#empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:80px 20px;color:var(--tx2);font-size:11px;text-align:center;
+}
+#empty-state svg{opacity:.4}
+#empty-state p{max-width:300px;line-height:1.8}
+
+/* Error banner */
+#err-banner{
+  margin:16px 20px 0;padding:10px 14px;
+  background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.25);
+  border-radius:8px;font-size:10px;color:var(--crit);display:none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Responsive */
+@media(max-width:500px){
+  #grid{grid-template-columns:1fr;padding:12px}
+  #config-wrap{padding:10px 12px;flex-direction:column}
+  .config-textarea{min-width:0}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  #topbar{padding:0 12px;gap:8px;height:52px}
+  .brand-text{font-size:15px}
+  .clock{display:none}
+}
+
+/* ── PIN / SAVE NODE ── */
+.pin-btn{
+  background:none;border:1px solid var(--border2);border-radius:6px;
+  color:var(--tx3);cursor:pointer;padding:4px 8px;font-size:9px;
+  font-family:'Space Mono',monospace;letter-spacing:.5px;
+  display:inline-flex;align-items:center;gap:4px;
+  transition:all .15s;white-space:nowrap;
+}
+.pin-btn:hover{border-color:var(--amber-dim);color:var(--amber)}
+.pin-btn.pinned{border-color:var(--amber);color:var(--amber);background:var(--amber-glow)}
+.pin-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 7px;border-radius:10px;font-size:8px;font-weight:700;letter-spacing:.8px;
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:var(--amber);
+  margin-left:4px;
+}
+.saved-nodes-section{
+  padding:10px 20px;border-bottom:1px solid var(--border);
+  background:rgba(245,158,11,.03);display:none;
+}
+.saved-nodes-section.has-pins{display:block}
+.saved-nodes-title{font-size:9px;color:var(--tx2);letter-spacing:2px;font-weight:700;margin-bottom:8px}
+.saved-node-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:8px;font-size:10px;
+  background:var(--bg2);border:1px solid rgba(245,158,11,.25);color:var(--amber);
+  font-family:'Space Mono',monospace;margin:0 6px 6px 0;cursor:default;
+}
+.saved-node-chip .unpin-x{
+  cursor:pointer;color:var(--tx2);font-size:12px;line-height:1;
+  transition:color .12s;background:none;border:none;padding:0;
+}
+.saved-node-chip .unpin-x:hover{color:var(--err)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header id="topbar">
+  <div class="brand">
+    <svg width="36" height="36" viewBox="0 0 512 512" fill="none">
+      <defs>
+        <radialGradient id="db-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#111820"/><stop offset="100%" stop-color="#0c0a08"/>
+        </radialGradient>
+        <linearGradient id="db-acc" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#0066ff"/>
+        </linearGradient>
+        <filter id="db-gl"><feGaussianBlur stdDeviation="6" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect width="512" height="512" rx="80" fill="url(#db-bg)"/>
+      <polygon points="256,28 462,141 462,371 256,484 50,371 50,141" stroke="#00e5ff" stroke-width="3" fill="none" opacity="0.18"/>
+      <line x1="256" y1="110" x2="140" y2="183" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+      <line x1="256" y1="110" x2="372" y2="183" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+      <line x1="140" y1="183" x2="372" y2="183" stroke="#00ccff" stroke-width="2" opacity="0.22"/>
+      <line x1="140" y1="183" x2="140" y2="329" stroke="#00ccff" stroke-width="2" opacity="0.22"/>
+      <line x1="372" y1="183" x2="372" y2="329" stroke="#00ccff" stroke-width="2" opacity="0.22"/>
+      <line x1="140" y1="329" x2="256" y2="402" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+      <line x1="372" y1="329" x2="256" y2="402" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+      <polygon points="256,196 296,219 296,266 256,289 216,266 216,219" stroke="url(#db-acc)" stroke-width="4" fill="none" filter="url(#db-gl)"/>
+      <g filter="url(#db-gl)">
+        <line x1="239" y1="278" x2="256" y2="216" stroke="url(#db-acc)" stroke-width="10" stroke-linecap="round"/>
+        <line x1="273" y1="278" x2="256" y2="216" stroke="url(#db-acc)" stroke-width="10" stroke-linecap="round"/>
+        <line x1="244" y1="256" x2="268" y2="256" stroke="#00e5ff" stroke-width="8" stroke-linecap="round"/>
+      </g>
+      <circle cx="256" cy="110" r="12" fill="#00e5ff" filter="url(#db-gl)"/>
+      <circle cx="140" cy="183" r="9" fill="#00ccff" opacity="0.85"/>
+      <circle cx="372" cy="183" r="9" fill="#00ccff" opacity="0.85"/>
+      <circle cx="140" cy="329" r="9" fill="#00ccff" opacity="0.85"/>
+      <circle cx="372" cy="329" r="9" fill="#00ccff" opacity="0.85"/>
+      <circle cx="256" cy="402" r="12" fill="#00e5ff" filter="url(#db-gl)"/>
+    </svg>
+    <div class="brand-logo-wrap">
+      <div class="brand-text">AXIOM</div>
+      <div class="brand-sub">FLEET</div>
+    </div>
+  </div>
+  <div id="status-pill" class="status-pill">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-label">CONNECTING</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="toggle-config-btn" onclick="toggleConfig()" id="config-toggle-btn">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.41 1.41M11.37 11.37l1.41 1.41M3.22 12.78l1.41-1.41M11.37 4.63l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    NODES
+  </button>
+  <div class="clock">
+    <div id="clock-time">--:--:--</div>
+    <div id="clock-date"></div>
+  </div>
+</header>
+
+<!-- CONFIG PANEL -->
+<div id="config-wrap" style="display:none">
+  <div class="config-col">
+    <label>NODE URLS (one per line — http://host:port)</label>
+    <textarea class="config-textarea" id="nodes-input" placeholder="http://192.168.1.10:7654&#10;http://192.168.1.20:7655&#10;http://100.71.46.98:7654"></textarea>
+  </div>
+  <div class="config-actions">
+    <button class="pill-btn active" onclick="applyNodes()">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><polyline points="2,8 6,12 14,4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      APPLY
+    </button>
+    <button class="pill-btn" onclick="resetToDefaults()">RESET</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
+      <label style="margin-bottom:0;white-space:nowrap">Refresh</label>
+      <select id="refresh-select" onchange="setRefreshRate()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--tx1);font-family:'Space Mono',monospace;font-size:10px;padding:5px 8px;outline:none">
+        <option value="10000">10s</option>
+        <option value="30000" selected>30s</option>
+        <option value="60000">60s</option>
+        <option value="0">Manual</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- SAVED NODES BAR -->
+<div id="saved-nodes-section" class="saved-nodes-section">
+  <div class="saved-nodes-title">⊕ SAVED NODES</div>
+  <div id="saved-nodes-chips"></div>
+</div>
+
+<!-- GRID -->
+<div id="grid"></div>
+<div id="empty-state" style="display:none">
+  <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+    <polygon points="32,6 56,19 56,45 32,58 8,45 8,19" stroke="#5a5040" stroke-width="2" fill="none" stroke-linejoin="round"/>
+    <line x1="22" y1="32" x2="42" y2="32" stroke="#5a5040" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="22" y1="38" x2="34" y2="38" stroke="#5a5040" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>
+  </svg>
+  <p>No nodes configured. Click <strong style="color:var(--amber)">NODES</strong> to add your AXIOM server and Pi agent URLs.</p>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const STORE_KEY_NODES   = 'axiom-fleet-nodes';
+const STORE_KEY_REFRESH = 'axiom-fleet-refresh';
+const STORE_KEY_PINNED  = 'axiom-fleet-pinned';   // ← saved/pinned nodes
+const DEFAULT_NODES     = ['http://localhost:7654'];
+
+let nodeUrls    = [];
+let pinnedUrls  = new Set();                        // ← persisted pinned set
+let nodeData    = {};   // url → { status, metrics, error, lastFetch }
+let refreshMs   = 30000;
+let refreshTimer= null;
+let configOpen  = false;
+
+// ── PERSIST ─────────────────────────────────────────────────────────────────
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem(STORE_KEY_NODES);
+    nodeUrls = saved ? JSON.parse(saved) : [...DEFAULT_NODES];
+  } catch(e) { nodeUrls = [...DEFAULT_NODES]; }
+  try {
+    const r = parseInt(localStorage.getItem(STORE_KEY_REFRESH));
+    if (!isNaN(r)) refreshMs = r;
+  } catch(e) {}
+  try {
+    const p = localStorage.getItem(STORE_KEY_PINNED);
+    pinnedUrls = p ? new Set(JSON.parse(p)) : new Set();
+    // Ensure all pinned URLs are in the active list
+    pinnedUrls.forEach(u => { if (!nodeUrls.includes(u)) nodeUrls.push(u); });
+  } catch(e) { pinnedUrls = new Set(); }
+}
+
+function saveConfig() {
+  try {
+    localStorage.setItem(STORE_KEY_NODES,   JSON.stringify(nodeUrls));
+    localStorage.setItem(STORE_KEY_REFRESH, String(refreshMs));
+    localStorage.setItem(STORE_KEY_PINNED,  JSON.stringify([...pinnedUrls]));
+  } catch(e) {}
+}
+
+// ── PIN / SAVE NODES ─────────────────────────────────────────────────────────
+function togglePin(url) {
+  if (pinnedUrls.has(url)) {
+    pinnedUrls.delete(url);
+  } else {
+    pinnedUrls.add(url);
+    // Ensure pinned nodes are always in nodeUrls
+    if (!nodeUrls.includes(url)) { nodeUrls.push(url); renderGrid(); fetchAll(); }
+  }
+  saveConfig();
+  renderSavedNodes();
+  // Update the pin button in the card if visible
+  const btn = document.querySelector(`.pin-btn[data-url="${CSS.escape(url)}"]`);
+  if (btn) {
+    btn.classList.toggle('pinned', pinnedUrls.has(url));
+    btn.innerHTML = pinnedUrls.has(url) ? pinIconHTML(true) : pinIconHTML(false);
+  }
+}
+
+function unpinUrl(url) {
+  pinnedUrls.delete(url);
+  saveConfig();
+  renderSavedNodes();
+  const btn = document.querySelector(`.pin-btn[data-url="${CSS.escape(url)}"]`);
+  if (btn) { btn.classList.remove('pinned'); btn.innerHTML = pinIconHTML(false); }
+}
+
+function pinIconHTML(pinned) {
+  const col = pinned ? 'var(--amber)' : 'currentColor';
+  return `<svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+    <path d="M5 1h6l-1 5 3 3H3l3-3L5 1z" stroke="${col}" stroke-width="1.4" stroke-linejoin="round" fill="${pinned ? col : 'none'}" fill-opacity="${pinned ? 0.3 : 0}"/>
+    <line x1="8" y1="9" x2="8" y2="15" stroke="${col}" stroke-width="1.4" stroke-linecap="round"/>
+  </svg>${pinned ? 'SAVED' : 'SAVE'}`;
+}
+
+function renderSavedNodes() {
+  const section = document.getElementById('saved-nodes-section');
+  const chips   = document.getElementById('saved-nodes-chips');
+  if (!section || !chips) return;
+  if (pinnedUrls.size === 0) {
+    section.classList.remove('has-pins');
+    chips.innerHTML = '';
+    return;
+  }
+  section.classList.add('has-pins');
+  chips.innerHTML = [...pinnedUrls].map(url => {
+    const d = nodeData[url] || {};
+    const dot = d.status === 'online' ? 'var(--good)' : d.status === 'offline' ? 'var(--red)' : 'var(--tx3)';
+    const label = d.metrics?.node || new URL(url).hostname;
+    return `<span class="saved-node-chip">
+      <span style="width:6px;height:6px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>
+      ${esc(label)}
+      <button class="unpin-x" onclick="unpinUrl('${esc(url)}')" title="Unsave node">×</button>
+    </span>`;
+  }).join('');
+}
+
+// ── UI HELPERS ───────────────────────────────────────────────────────────────
+function toggleConfig() {
+  configOpen = !configOpen;
+  document.getElementById('config-wrap').style.display = configOpen ? 'flex' : 'none';
+  document.getElementById('config-toggle-btn').classList.toggle('active', configOpen);
+  if (configOpen) {
+    document.getElementById('nodes-input').value = nodeUrls.join('\n');
+    document.getElementById('refresh-select').value = String(refreshMs);
+  }
+}
+
+function applyNodes() {
+  const raw = document.getElementById('nodes-input').value;
+  nodeUrls = raw.split('\n')
+    .map(s => s.trim().replace(/\/$/, ''))
+    .filter(s => s && (s.startsWith('http://') || s.startsWith('https://')));
+  saveConfig();
+  nodeData = {};
+  renderGrid();
+  fetchAll();
+}
+
+function resetToDefaults() {
+  nodeUrls = [...DEFAULT_NODES];
+  document.getElementById('nodes-input').value = nodeUrls.join('\n');
+  nodeData = {};
+  saveConfig();
+  renderGrid();
+  fetchAll();
+}
+
+function setRefreshRate() {
+  refreshMs = parseInt(document.getElementById('refresh-select').value);
+  saveConfig();
+  clearInterval(refreshTimer);
+  if (refreshMs > 0) refreshTimer = setInterval(fetchAll, refreshMs);
+}
+
+// ── FETCH ────────────────────────────────────────────────────────────────────
+async function fetchNode(url) {
+  try {
+    const r = await fetch(`${url}/api/metrics`, {signal: AbortSignal.timeout(8000)});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const m = await r.json();
+    nodeData[url] = { status: 'online', metrics: m, error: null, lastFetch: new Date() };
+  } catch(e) {
+    nodeData[url] = { status: 'offline', metrics: null, error: e.message, lastFetch: new Date() };
+  }
+  renderCard(url);
+  updateGlobalStatus();
+  renderSavedNodes(); // refresh chip status dots after fetch
+}
+
+function fetchAll() {
+  if (!nodeUrls.length) return;
+  nodeUrls.forEach(url => {
+    if (!nodeData[url]) nodeData[url] = { status: 'loading', metrics: null, error: null, lastFetch: null };
+    fetchNode(url);
+  });
+  updateGlobalStatus();
+}
+
+// ── STATUS ───────────────────────────────────────────────────────────────────
+function updateGlobalStatus() {
+  const total   = nodeUrls.length;
+  const online  = nodeUrls.filter(u => nodeData[u]?.status === 'online').length;
+  const loading = nodeUrls.filter(u => nodeData[u]?.status === 'loading').length;
+  const dot     = document.getElementById('status-dot');
+  const lbl     = document.getElementById('status-label');
+  if (!total) { dot.className='status-dot'; lbl.textContent='NO NODES'; return; }
+  if (loading > 0 && online === 0) { dot.className='status-dot'; lbl.textContent='CONNECTING…'; return; }
+  if (online === total) { dot.className='status-dot live'; lbl.textContent=`${online}/${total} ONLINE`; }
+  else if (online > 0) { dot.className='status-dot'; dot.style.background='var(--warn)'; lbl.textContent=`${online}/${total} ONLINE`; }
+  else { dot.className='status-dot'; dot.style.background='var(--red)'; lbl.textContent='ALL OFFLINE'; }
+}
+
+// ── RENDER GRID ──────────────────────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty-state');
+  if (!nodeUrls.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+  // Add missing cards, preserve existing
+  const existing = new Set(Array.from(grid.querySelectorAll('.node-card')).map(el => el.dataset.url));
+  // Remove cards for deleted urls
+  Array.from(grid.querySelectorAll('.node-card')).forEach(el => {
+    if (!nodeUrls.includes(el.dataset.url)) el.remove();
+  });
+  // Add new cards
+  nodeUrls.forEach((url, i) => {
+    if (!document.querySelector(`.node-card[data-url="${CSS.escape(url)}"]`)) {
+      const card = document.createElement('div');
+      card.className = 'node-card loading';
+      card.dataset.url = url;
+      card.innerHTML = skeletonCard(url);
+      // Insert at correct position
+      const cards = grid.querySelectorAll('.node-card');
+      if (cards[i]) grid.insertBefore(card, cards[i]);
+      else grid.appendChild(card);
+    }
+  });
+}
+
+function renderCard(url) {
+  const card = document.querySelector(`.node-card[data-url="${CSS.escape(url)}"]`);
+  if (!card) return;
+  const d = nodeData[url] || {};
+  card.className = `node-card ${d.status || 'loading'}`;
+  if (d.status === 'online' && d.metrics) {
+    card.innerHTML = buildCard(url, d.metrics, d.lastFetch);
+  } else if (d.status === 'offline') {
+    card.innerHTML = offlineCard(url, d.error, d.lastFetch);
+  } else {
+    card.innerHTML = skeletonCard(url);
+  }
+}
+
+// ── CARD BUILDERS ────────────────────────────────────────────────────────────
+function barClass(pct) {
+  if (pct >= 90) return 'critical';
+  if (pct >= 75) return 'high';
+  if (pct >= 50) return 'mid';
+  return 'low';
+}
+
+function skeletonCard(url) {
+  return `
+  <div class="card-header">
+    <div class="node-dot loading"></div>
+    <div class="card-title">
+      <div class="skel" style="height:14px;width:120px;margin-bottom:5px"></div>
+      <div class="skel" style="height:9px;width:180px"></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="skel" style="height:10px;width:100%;margin-bottom:8px"></div>
+    <div class="skel" style="height:5px;width:100%;margin-bottom:14px"></div>
+    <div class="skel" style="height:10px;width:100%;margin-bottom:8px"></div>
+    <div class="skel" style="height:5px;width:100%;margin-bottom:14px"></div>
+    <div class="stats-grid" style="opacity:.4">
+      <div class="stat-box"><div class="skel" style="height:9px;width:40px;margin-bottom:5px"></div><div class="skel" style="height:16px;width:50px"></div></div>
+      <div class="stat-box"><div class="skel" style="height:9px;width:40px;margin-bottom:5px"></div><div class="skel" style="height:16px;width:50px"></div></div>
+      <div class="stat-box"><div class="skel" style="height:9px;width:40px;margin-bottom:5px"></div><div class="skel" style="height:16px;width:50px"></div></div>
+    </div>
+  </div>
+  <div class="card-footer"><span class="card-node-url">${esc(url)}</span></div>`;
+}
+
+function offlineCard(url, err, lastFetch) {
+  const ago = lastFetch ? timeAgo(lastFetch) : 'never';
+  return `
+  <div class="card-header">
+    <div class="node-dot offline"></div>
+    <div class="card-title">
+      <div class="card-node-name">NODE UNREACHABLE</div>
+      <div class="card-node-url">${esc(url)}</div>
+    </div>
+    <div class="card-role-badge">OFFLINE</div>
+  </div>
+  <div class="card-body">
+    <div class="offline-msg">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f87171" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="13" stroke="#f87171" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="#f87171"/></svg>
+      <span>${esc(err || 'Connection failed')}</span>
+    </div>
+  </div>
+  <div class="card-footer">
+    <span class="card-node-url">${esc(url)}</span>
+    <span class="spacer"></span>
+    <span class="fetched">last tried ${ago}</span>
+  </div>`;
+}
+
+function buildCard(url, m, lastFetch) {
+  const ago = lastFetch ? timeAgo(lastFetch) : '';
+
+  // ── Normalise fields (handles both main.py and pi_agent.py formats post-fix) ──
+  const memUsed  = m.memory?.used_gb  ?? (m.memory?.used  != null ? +(m.memory.used  / 1e9).toFixed(1) : null);
+  const memTotal = m.memory?.total_gb ?? (m.memory?.total != null ? +(m.memory.total / 1e9).toFixed(1) : null);
+  const memPct   = m.memory?.percent  ?? 0;
+
+  const load1  = m.load_1  ?? (m.load?.['1m']  ?? null);
+  const load5  = m.load_5  ?? (m.load?.['5m']  ?? null);
+  const load15 = m.load_15 ?? (m.load?.['15m'] ?? null);
+
+  const freqMhz = m.freq?.current_mhz ?? m.freq?.arm_mhz ?? null;
+
+  const cpuPct  = m.cpu_percent ?? 0;
+  const cpuCount= m.cpu_count   ?? null;
+  const tempC   = m.temperature_c ?? null;
+  const uptime  = m.uptime_human  ?? '';
+  const role    = m.role          ?? 'agent';
+  const nodeName= m.node          ?? new URL(url).hostname;
+  const model   = m.model         ?? '';
+
+  // throttle
+  const thr = m.throttle;
+  let throttleHtml = '';
+  if (thr) {
+    if (thr.throttled)      throttleHtml += `<span class="throttle-badge throttle-warn">⚡ THROTTLED</span>`;
+    if (thr.under_voltage)  throttleHtml += `<span class="throttle-badge throttle-warn">⚠ UNDER VOLTAGE</span>`;
+    if (!thr.throttled && !thr.under_voltage)
+      throttleHtml = `<span class="throttle-badge throttle-ok">✓ NOMINAL</span>`;
+  }
+
+  // disks
+  let disksHtml = '';
+  const disks = m.disks || [];
+  if (disks.length) {
+    disksHtml = `<div class="metric-section"><div class="metric-label">STORAGE</div>`;
+    disks.forEach(d => {
+      const dUsed  = d.used_gb  ?? (d.used  != null ? +(d.used  / 1e9).toFixed(1) : null);
+      const dTotal = d.total_gb ?? (d.total != null ? +(d.total / 1e9).toFixed(1) : null);
+      const dPct   = d.percent  ?? 0;
+      const bc     = barClass(dPct);
+      const label  = d.mount || d.device || '?';
+      disksHtml += `
+        <div class="metric-row">
+          <div class="metric-name" title="${esc(label)}">${esc(label.length > 7 ? label.slice(0,7)+'…' : label)}</div>
+          <div class="metric-bar-wrap"><div class="metric-bar ${bc}" style="width:${Math.min(dPct,100)}%"></div></div>
+          <div class="metric-val">${dUsed != null && dTotal != null ? `${dUsed}/${dTotal} GB` : '—'}</div>
+          <div class="metric-pct">${dPct}%</div>
+        </div>`;
+    });
+    disksHtml += `</div>`;
+  }
+
+  const cpuBc  = barClass(cpuPct);
+  const memBc  = barClass(memPct);
+
+  const roleLabel = role === 'main' ? 'MAIN' : 'AGENT';
+
+  return `
+  <div class="card-header">
+    <div class="node-dot online"></div>
+    <div class="card-title">
+      <div class="card-node-name">${esc(nodeName)}</div>
+      <div class="card-node-url">${esc(url)}${model ? ' · ' + esc(model) : ''}</div>
+    </div>
+    <div class="card-role-badge ${role}">${roleLabel}</div>
+  </div>
+  <div class="card-body">
+
+    <div class="metric-section">
+      <div class="metric-label">CPU</div>
+      <div class="metric-row">
+        <div class="metric-name">usage</div>
+        <div class="metric-bar-wrap"><div class="metric-bar ${cpuBc}" style="width:${Math.min(cpuPct,100)}%"></div></div>
+        <div class="metric-val">${cpuCount != null ? `${cpuCount} core${cpuCount>1?'s':''}` : '—'}</div>
+        <div class="metric-pct">${cpuPct}%</div>
+      </div>
+    </div>
+
+    <div class="metric-section">
+      <div class="metric-label">MEMORY</div>
+      <div class="metric-row">
+        <div class="metric-name">RAM</div>
+        <div class="metric-bar-wrap"><div class="metric-bar ${memBc}" style="width:${Math.min(memPct,100)}%"></div></div>
+        <div class="metric-val">${memUsed != null && memTotal != null ? `${memUsed}/${memTotal} GB` : '—'}</div>
+        <div class="metric-pct">${memPct.toFixed(1)}%</div>
+      </div>
+    </div>
+
+    ${disksHtml}
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-box-label">LOAD AVG</div>
+        <div class="stat-box-val">${load1 != null ? load1 : '—'}</div>
+        <div class="stat-box-sub">${load5 != null ? `${load5} · ${load15}` : '5m / 15m'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">TEMP</div>
+        <div class="stat-box-val" style="color:${tempC != null && tempC >= 70 ? 'var(--err)' : tempC != null && tempC >= 60 ? 'var(--warn)' : 'var(--tx1)'}">${tempC != null ? tempC + '°C' : '—'}</div>
+        <div class="stat-box-sub">${freqMhz != null ? Math.round(freqMhz) + ' MHz' : ''}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">UPTIME</div>
+        <div class="stat-box-val" style="font-size:11px">${uptime || '—'}</div>
+        <div class="stat-box-sub">&nbsp;</div>
+      </div>
+    </div>
+
+    ${throttleHtml ? `<div style="margin-top:2px;margin-bottom:10px">${throttleHtml}</div>` : ''}
+
+  </div>
+  <div class="card-footer">
+    <a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--amber-dim);text-decoration:none;font-size:9px">OPEN ↗</a>
+    <button class="pin-btn${pinnedUrls.has(url) ? ' pinned' : ''}" data-url="${esc(url)}" onclick="togglePin('${esc(url)}')" title="${pinnedUrls.has(url) ? 'Unsave node' : 'Save node permanently'}">
+      ${pinIconHTML(pinnedUrls.has(url))}
+    </button>
+    <span class="spacer"></span>
+    <span class="uptime"></span>
+    <span class="fetched">updated ${ago}</span>
+  </div>`;
+}
+
+// ── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(d) {
+  const s = Math.floor((Date.now() - d) / 1000);
+  if (s < 5)  return 'just now';
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m/60)}h ago`;
+}
+
+// ── CLOCK ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-time').textContent =
+    now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock-date').textContent =
+    now.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+loadConfig();
+renderGrid();
+renderSavedNodes();
+fetchAll();
+
+setInterval(updateClock, 1000);
+updateClock();
+
+if (refreshMs > 0) refreshTimer = setInterval(fetchAll, refreshMs);
+
+// Re-render "updated X ago" labels every 30s
+setInterval(() => {
+  nodeUrls.forEach(url => {
+    const d = nodeData[url];
+    if (d?.status === 'online') {
+      const card = document.querySelector(`.node-card[data-url="${CSS.escape(url)}"]`);
+      const el = card?.querySelector('.fetched');
+      if (el && d.lastFetch) el.textContent = `updated ${timeAgo(d.lastFetch)}`;
+    }
+  });
+}, 30000);
+
+// ── PWA: Service Worker + Install Prompt ──────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-fleet.js', { scope: '/' })
+      .catch(() => {
+        navigator.serviceWorker.register('/sw-fleet.js').catch(() => {});
+      });
+  });
+}
+
+// Install banner — shown after 3 s if not already installed
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstall = e;
+  setTimeout(() => {
+    const banner = document.getElementById('pwa-banner');
+    if (banner && !window.matchMedia('(display-mode: standalone)').matches) {
+      banner.style.display = 'flex';
+    }
+  }, 3000);
+});
+
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.style.display = 'none';
+  _deferredInstall = null;
+});
+
+window.__pwaInstall = async () => {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  const { outcome } = await _deferredInstall.userChoice;
+  if (outcome === 'accepted') _deferredInstall = null;
+};
+
+window.__pwaDismiss = () => {
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.style.display = 'none';
+};
+</script>
+
+<!-- PWA install banner (Android/Chrome) -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;
+  background:#1a1712;border:1px solid rgba(245,158,11,.35);border-radius:14px;
+  padding:14px 18px;gap:14px;align-items:center;max-width:360px;width:calc(100% - 40px);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);font-family:'Space Mono',monospace;">
+  <svg width="40" height="40" viewBox="0 0 512 512" fill="none" style="flex-shrink:0">
+    <defs>
+      <radialGradient id="bn-bg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#111820"/><stop offset="100%" stop-color="#0c0a08"/>
+      </radialGradient>
+      <linearGradient id="bn-acc" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#0066ff"/>
+      </linearGradient>
+      <filter id="bn-gl"><feGaussianBlur stdDeviation="6" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <rect width="512" height="512" rx="80" fill="url(#bn-bg)"/>
+    <polygon points="256,28 462,141 462,371 256,484 50,371 50,141" stroke="#00e5ff" stroke-width="3" fill="none" opacity="0.18"/>
+    <line x1="256" y1="110" x2="140" y2="183" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+    <line x1="256" y1="110" x2="372" y2="183" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+    <line x1="140" y1="329" x2="256" y2="402" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+    <line x1="372" y1="329" x2="256" y2="402" stroke="#00ccff" stroke-width="2" opacity="0.4"/>
+    <polygon points="256,196 296,219 296,266 256,289 216,266 216,219" stroke="url(#bn-acc)" stroke-width="4" fill="none" filter="url(#bn-gl)"/>
+    <g filter="url(#bn-gl)">
+      <line x1="239" y1="278" x2="256" y2="216" stroke="url(#bn-acc)" stroke-width="10" stroke-linecap="round"/>
+      <line x1="273" y1="278" x2="256" y2="216" stroke="url(#bn-acc)" stroke-width="10" stroke-linecap="round"/>
+      <line x1="244" y1="256" x2="268" y2="256" stroke="#00e5ff" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <circle cx="256" cy="110" r="12" fill="#00e5ff" filter="url(#bn-gl)"/>
+    <circle cx="256" cy="402" r="12" fill="#00e5ff" filter="url(#bn-gl)"/>
+  </svg>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:11px;font-weight:700;color:#e8dfc8;letter-spacing:1px">ADD TO HOME SCREEN</div>
+    <div style="font-size:9px;color:#7a6f5a;margin-top:3px">Install AXIOM Fleet for quick access</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+    <button onclick="__pwaInstall()" style="background:#f59e0b;color:#0c0a08;border:none;border-radius:7px;
+      padding:6px 12px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;
+      cursor:pointer;letter-spacing:.5px">INSTALL</button>
+    <button onclick="__pwaDismiss()" style="background:transparent;color:#4a4035;border:1px solid #2a2720;
+      border-radius:7px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:9px;
+      cursor:pointer;letter-spacing:.5px">DISMISS</button>
+  </div>
+</div>
+
+</body>
+</html>

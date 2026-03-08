@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Optional
 
 import httpx
+import psutil
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse, Response, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,6 +67,117 @@ async def health():
         "version":   "1.0",
         "log_root":  str(LOG_ROOT),
         "log_exists": LOG_ROOT.exists(),
+    }
+
+
+@app.get("/api/metrics")
+async def get_metrics():
+    """System metrics — mirrors pi_agent /api/metrics so the fleet dashboard works uniformly."""
+    cpu      = psutil.cpu_percent(interval=0.3)
+    mem      = psutil.virtual_memory()
+    swap     = psutil.swap_memory()
+    load1, load5, load15 = psutil.getloadavg()
+    boot_ts  = psutil.boot_time()
+    uptime_s = int(time.time() - boot_ts)
+    h, rem   = divmod(uptime_s, 3600)
+    m        = rem // 60
+    uptime_h = f"{h}h {m}m" if h else f"{m}m"
+
+    freq = None
+    try:
+        f = psutil.cpu_freq()
+        if f:
+            freq = {"current_mhz": round(f.current), "max_mhz": round(f.max)}
+    except Exception:
+        pass
+
+    _REAL = re.compile(r"^(/$|/mnt/|/media/|/boot/|/home/|/data/|/storage/|/opt/)")
+    disks = []
+    seen  = set()
+    # With pid:host, /proc/1/root gives us the host filesystem.
+    # Read host mounts from /proc/1/mounts and stat via /proc/1/root/<mp>
+    HOST_ROOT = "/proc/1/root"
+    try:
+        with open("/proc/1/mounts") as fh:
+            for line in fh:
+                parts = line.split()
+                if len(parts) < 2:
+                    continue
+                mp = parts[1]
+                if not _REAL.match(mp) or mp in seen:
+                    continue
+                seen.add(mp)
+                try:
+                    host_path = HOST_ROOT + mp if mp != "/" else HOST_ROOT
+                    st = os.statvfs(host_path)
+                    total = st.f_frsize * st.f_blocks
+                    free  = st.f_frsize * st.f_bavail
+                    used  = total - free
+                    pct   = round(used / total * 100, 1) if total else 0.0
+                    disks.append({
+                        "mount":    mp,
+                        "total_gb": round(total / 1e9, 1),
+                        "used_gb":  round(used  / 1e9, 1),
+                        "free_gb":  round(free  / 1e9, 1),
+                        "percent":  pct,
+                    })
+                except Exception:
+                    pass
+    except Exception:
+        pass  # fallback: no disks shown rather than container-only data
+
+    temp_c = None
+    try:
+        sensors = psutil.sensors_temperatures()
+        for key in ("coretemp", "acpitz", "cpu_thermal", "k10temp"):
+            if key in sensors and sensors[key]:
+                temp_c = round(sensors[key][0].current, 1)
+                break
+        if temp_c is None:
+            for entries in sensors.values():
+                if entries:
+                    temp_c = round(entries[0].current, 1)
+                    break
+    except Exception:
+        pass
+
+    # Read hostname from host (container hostname is a random ID)
+    node = "main"
+    try:
+        with open("/proc/1/root/etc/hostname") as fh:
+            node = fh.read().strip()
+    except Exception:
+        try:
+            import socket
+            node = socket.gethostname()
+        except Exception:
+            pass
+
+    return {
+        "node":         node,
+        "role":         "main",
+        "model":        "AXIOM Main Server",
+        "uptime_s":     uptime_s,
+        "uptime_human": uptime_h,
+        "cpu_percent":  cpu,
+        "cpu_count":    psutil.cpu_count(logical=True),
+        "load_1":       round(load1, 2),
+        "load_5":       round(load5, 2),
+        "load_15":      round(load15, 2),
+        "memory": {
+            "total_gb": round(mem.total / 1e9, 1),
+            "used_gb":  round(mem.used  / 1e9, 1),
+            "percent":  mem.percent,
+        },
+        "swap": {
+            "total_gb": round(swap.total / 1e9, 1),
+            "used_gb":  round(swap.used  / 1e9, 1),
+            "percent":  swap.percent,
+        },
+        "disks":         disks,
+        "temperature_c": temp_c,
+        "freq":          freq,
+        "throttle":      None,
     }
 
 

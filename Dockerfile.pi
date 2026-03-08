@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AXIOM Pi Agent — Multi-arch Dockerfile
+# Platforms: linux/arm64 (Pi 4/5 64-bit), linux/arm/v7 (Pi 3/4 32-bit)
+#
+# Build locally:
+#   docker buildx build --platform linux/arm64,linux/arm/v7 \
+#     -t justxforxdocker/axiom-pi:latest --push .
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# System packages
+# libraspberrypi-bin (vcgencmd) only exists on Raspberry Pi OS; skip gracefully elsewhere
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        procps \
+        curl \
+        systemd \
+        smartmontools \
+        ca-certificates \
+        gcc \
+        python3-dev \
+    && ( apt-get install -y --no-install-recommends libraspberrypi-bin || true ) \
+    && rm -rf /var/lib/apt/lists/*
+
+# Docker CLI — use TARGETARCH to select the correct binary for each platform
+# BuildKit sets TARGETARCH automatically: amd64 / arm64 / arm
+ARG TARGETARCH
+ARG DOCKER_VERSION=27.3.1
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+        amd64)  DOCKER_ARCH="x86_64"   ;; \
+        arm64)  DOCKER_ARCH="aarch64"  ;; \
+        arm)    DOCKER_ARCH="armhf"    ;; \
+        *)      echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VERSION}.tgz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin docker/docker; \
+    chmod +x /usr/local/bin/docker; \
+    docker --version
+
+# Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.115.5 \
+    uvicorn==0.32.1 \
+    psutil==6.1.0 \
+    httpx==0.27.2
+
+COPY pi_agent.py .
+
+ENV NODE_NAME=raspberry-pi
+ENV NODE_ROLE=agent
+ENV PORT=7655
+ENV OLLAMA_HOST=""
+ENV OLLAMA_MODEL="llama3.2:1b"
+
+EXPOSE 7655
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:7655/health || exit 1
+
+CMD ["uvicorn", "pi_agent:app", "--host", "0.0.0.0", "--port", "7655", \
+     "--log-level", "warning", "--workers", "1"]

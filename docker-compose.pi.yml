@@ -1,0 +1,61 @@
+# AXIOM Pi Agent — docker-compose
+# ─────────────────────────────────────────────────────────────────
+# Run this ON the Raspberry Pi, not on the main server.
+#
+# Quick start:
+#   docker compose -f docker-compose.pi.yml up -d --build
+#   curl http://localhost:7655/health
+
+services:
+
+  axiom-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.pi
+    image: axiom-pi-agent:latest
+    container_name: axiom-agent
+    restart: unless-stopped
+
+    # pid:host  → psutil sees real host processes + /proc
+    # privileged → vcgencmd, /sys/class/thermal, raw disk access
+    # network_mode: host → simplest for LAN discovery, no port mapping needed
+    pid: host
+    privileged: true
+    network_mode: host
+
+    environment:
+      - NODE_NAME=${NODE_NAME:-raspberry-pi}
+      - NODE_ROLE=agent
+      - PORT=7655
+      - OLLAMA_HOST=http://100.71.46.98:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:1b}
+
+    volumes:
+      # Read-only log access
+      - /var/log:/var/log:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      # sysfs for temp / throttle / vcgencmd fallback
+      - /sys:/sys:ro
+      # proc for psutil
+      - /proc:/proc:ro
+      # Docker socket — enables the Docker log source
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7655/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    labels:
+      - "com.axiom.role=pi-agent"
+      - "com.axiom.version=1.1"

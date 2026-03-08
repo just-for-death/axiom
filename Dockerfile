@@ -4,10 +4,17 @@ WORKDIR /app
 COPY package.json .
 RUN npm install
 COPY index.html .
+COPY dashboard.html .
 COPY vite.config.js .
 COPY src/    src/
 COPY public/ public/
-RUN npm run build
+RUN npm run build \
+ && cp /app/dashboard.html /app/dist/dashboard.html \
+ && cp /app/public/fleet-*.png        /app/dist/ \
+ && cp /app/public/fleet-*.svg        /app/dist/ \
+ && cp /app/public/apple-touch-fleet*.png /app/dist/ \
+ && cp /app/public/manifest-fleet.json    /app/dist/ \
+ && cp /app/public/sw-fleet.js            /app/dist/
 
 # ── Stage 2: Single Python service — does everything ──────────────────────────
 # Gets pid:host + all volume mounts in docker-compose → sees real host data

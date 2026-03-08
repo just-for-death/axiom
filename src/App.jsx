@@ -380,15 +380,50 @@ function SysmonLog() {
 // LOGO SVG
 // ─────────────────────────────────────────────────────────────────────────────
 function AxiomLogo({ size=36 }) {
+  // Hex-network-node motif with glowing A — cyan/blue for the icon, amber brand stays in header text
+  const s = size / 512;
+  const sc = (x) => Math.round(x * s);
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <rect width="64" height="64" rx="11" fill={T.bg0}/>
-      <polygon points="32,6 56,19 56,45 32,58 8,45 8,19"
-               stroke={T.amber} strokeWidth="2.2" fill="none" strokeLinejoin="round"/>
-      <line x1="17" y1="28" x2="47" y2="28" stroke={T.amber} strokeWidth="3.5" strokeLinecap="round"/>
-      <line x1="17" y1="36" x2="41" y2="36" stroke={T.amber} strokeWidth="3.5" strokeLinecap="round" opacity=".55"/>
-      <line x1="17" y1="44" x2="44" y2="44" stroke={T.amber} strokeWidth="3.5" strokeLinecap="round" opacity=".25"/>
-      <circle cx="47" cy="22" r="4" fill={T.crit}/>
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="none" style={{flexShrink:0}}>
+      <defs>
+        <radialGradient id="al-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#111820"/><stop offset="100%" stopColor="#0c0a08"/>
+        </radialGradient>
+        <linearGradient id="al-acc" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00e5ff"/><stop offset="100%" stopColor="#0066ff"/>
+        </linearGradient>
+        <filter id="al-gl"><feGaussianBlur stdDeviation="6" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <rect width="512" height="512" rx="80" fill="url(#al-bg)"/>
+      {/* Outer hex */}
+      <polygon points="256,28 462,141 462,371 256,484 50,371 50,141"
+               stroke="#00e5ff" strokeWidth="3" fill="none" opacity="0.18"/>
+      {/* Network edges */}
+      <line x1="256" y1="110" x2="140" y2="183" stroke="#00ccff" strokeWidth="2" opacity="0.4"/>
+      <line x1="256" y1="110" x2="372" y2="183" stroke="#00ccff" strokeWidth="2" opacity="0.4"/>
+      <line x1="140" y1="183" x2="372" y2="183" stroke="#00ccff" strokeWidth="2" opacity="0.22"/>
+      <line x1="140" y1="183" x2="140" y2="329" stroke="#00ccff" strokeWidth="2" opacity="0.22"/>
+      <line x1="372" y1="183" x2="372" y2="329" stroke="#00ccff" strokeWidth="2" opacity="0.22"/>
+      <line x1="140" y1="329" x2="256" y2="402" stroke="#00ccff" strokeWidth="2" opacity="0.4"/>
+      <line x1="372" y1="329" x2="256" y2="402" stroke="#00ccff" strokeWidth="2" opacity="0.4"/>
+      {/* Central hex */}
+      <polygon points="256,196 296,219 296,266 256,289 216,266 216,219"
+               stroke="url(#al-acc)" strokeWidth="4" fill="none" filter="url(#al-gl)"/>
+      {/* Glowing A */}
+      <g filter="url(#al-gl)">
+        <line x1="239" y1="278" x2="256" y2="216" stroke="url(#al-acc)" strokeWidth="10" strokeLinecap="round"/>
+        <line x1="273" y1="278" x2="256" y2="216" stroke="url(#al-acc)" strokeWidth="10" strokeLinecap="round"/>
+        <line x1="244" y1="256" x2="268" y2="256" stroke="#00e5ff" strokeWidth="8" strokeLinecap="round"/>
+      </g>
+      {/* Node dots */}
+      <circle cx="256" cy="110" r="12" fill="#00e5ff" filter="url(#al-gl)"/>
+      <circle cx="140" cy="183" r="9"  fill="#00ccff" opacity="0.8"/>
+      <circle cx="372" cy="183" r="9"  fill="#00ccff" opacity="0.8"/>
+      <circle cx="140" cy="329" r="9"  fill="#00ccff" opacity="0.8"/>
+      <circle cx="372" cy="329" r="9"  fill="#00ccff" opacity="0.8"/>
+      <circle cx="256" cy="402" r="12" fill="#00e5ff" filter="url(#al-gl)"/>
     </svg>
   );
 }

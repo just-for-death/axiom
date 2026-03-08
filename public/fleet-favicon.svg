@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#111820"/>
+      <stop offset="100%" stop-color="#0c1220"/>
+    </radialGradient>
+    <linearGradient id="amber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowS" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#bg)"/>
+
+  <!-- Network edges -->
+  <line x1="256" y1="120" x2="140" y2="220" stroke="#f59e0b" stroke-width="3" opacity="0.35"/>
+  <line x1="256" y1="120" x2="372" y2="220" stroke="#f59e0b" stroke-width="3" opacity="0.35"/>
+  <line x1="140" y1="220" x2="372" y2="220" stroke="#f59e0b" stroke-width="2" opacity="0.25"/>
+  <line x1="140" y1="220" x2="180" y2="360" stroke="#f59e0b" stroke-width="3" opacity="0.35"/>
+  <line x1="372" y1="220" x2="332" y2="360" stroke="#f59e0b" stroke-width="3" opacity="0.35"/>
+  <line x1="180" y1="360" x2="332" y2="360" stroke="#f59e0b" stroke-width="2" opacity="0.25"/>
+  <line x1="140" y1="220" x2="332" y2="360" stroke="#f59e0b" stroke-width="1.5" opacity="0.18"/>
+  <line x1="372" y1="220" x2="180" y2="360" stroke="#f59e0b" stroke-width="1.5" opacity="0.18"/>
+
+  <!-- Network nodes -->
+  <!-- Top node (hub) -->
+  <circle cx="256" cy="120" r="18" fill="url(#amber)" filter="url(#glow)"/>
+  <!-- Mid-left -->
+  <circle cx="140" cy="220" r="13" fill="#f59e0b" opacity="0.9" filter="url(#glowS)"/>
+  <!-- Mid-right -->
+  <circle cx="372" cy="220" r="13" fill="#f59e0b" opacity="0.9" filter="url(#glowS)"/>
+  <!-- Bot-left -->
+  <circle cx="180" cy="360" r="13" fill="#f59e0b" opacity="0.9" filter="url(#glowS)"/>
+  <!-- Bot-right -->
+  <circle cx="332" cy="360" r="13" fill="#f59e0b" opacity="0.9" filter="url(#glowS)"/>
+</svg>
