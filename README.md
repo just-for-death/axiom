@@ -157,6 +157,98 @@ npm run dev   # http://localhost:3000 — proxies /api to :8080
 
 ---
 
+## Troubleshooting
+
+### `axiom-log` crashes with "can't find '__main__' module in '/app/log_watcher.py'"
+
+**Cause:** Docker auto-created `/mnt/nvme0n1/AppData/axiom/log_watcher.py` as a **directory** instead of a file. This happens when the file doesn't exist on the host at the time the container first starts — Docker creates a directory at the mount point as a placeholder. Python then tries to run it as a package and fails.
+
+**How to confirm:**
+```bash
+ls -la /mnt/nvme0n1/AppData/axiom/log_watcher.py
+# If you see 'drwxr-xr-x' (d at the start), it's a directory — that's the problem
+```
+
+**Fix (bash):**
+
+```bash
+# 1. Remove the wrongly-created directory
+sudo rm -rf /mnt/nvme0n1/AppData/axiom/log_watcher.py
+
+# 2. Write the correct script file
+sudo tee /mnt/nvme0n1/AppData/axiom/log_watcher.py > /dev/null << 'EOF'
+#!/usr/bin/env python3
+import urllib.request, json, time, os
+from datetime import datetime
+LOG_PATH = "/var/log/axiom/axiom.log"
+SYSMON_URL = "http://axiom:8080"
+os.makedirs("/var/log/axiom", exist_ok=True)
+def ts(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def write(msg):
+    line = f"{ts()} {msg}"; print(line, flush=True); open(LOG_PATH, "a").write(line + "\n")
+write("[axiom-log] starting up")
+while True:
+    try: urllib.request.urlopen(f"{SYSMON_URL}/health", timeout=3); write("[axiom-log] sysmon is up"); break
+    except: print(f"{ts()} waiting...", flush=True); time.sleep(3)
+seen = 0
+while True:
+    try:
+        resp = urllib.request.urlopen(f"{SYSMON_URL}/api/sysmon-logs", timeout=5)
+        lines = json.loads(resp.read()).get("lines", [])
+        [write(f"[axiom] {l}") for l in lines[seen:]]; seen = len(lines)
+    except Exception as e: write(f"[axiom-log] poll error: {e}")
+    time.sleep(5)
+EOF
+
+# 3. Restart
+docker compose down axiom-log && docker compose up -d axiom-log
+```
+
+**Fix (fish shell) — `<<EOF` heredocs are not supported in fish, use `bash -c` instead:**
+
+```fish
+sudo rm -rf /mnt/nvme0n1/AppData/axiom/log_watcher.py
+
+bash -c 'sudo tee /mnt/nvme0n1/AppData/axiom/log_watcher.py > /dev/null << '"'"'EOF'"'"'
+#!/usr/bin/env python3
+import urllib.request, json, time, os
+from datetime import datetime
+LOG_PATH = "/var/log/axiom/axiom.log"
+SYSMON_URL = "http://axiom:8080"
+os.makedirs("/var/log/axiom", exist_ok=True)
+def ts(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def write(msg):
+    line = f"{ts()} {msg}"; print(line, flush=True); open(LOG_PATH, "a").write(line + "\n")
+write("[axiom-log] starting up")
+while True:
+    try: urllib.request.urlopen(f"{SYSMON_URL}/health", timeout=3); write("[axiom-log] sysmon is up"); break
+    except: print(f"{ts()} waiting...", flush=True); time.sleep(3)
+seen = 0
+while True:
+    try:
+        resp = urllib.request.urlopen(f"{SYSMON_URL}/api/sysmon-logs", timeout=5)
+        lines = json.loads(resp.read()).get("lines", [])
+        [write(f"[axiom] {l}") for l in lines[seen:]]; seen = len(lines)
+    except Exception as e: write(f"[axiom-log] poll error: {e}")
+    time.sleep(5)
+EOF'
+
+docker compose down axiom-log; and docker compose up -d axiom-log
+```
+
+**Verify it's working:**
+```bash
+docker logs -f axiom-log
+# Expected output:
+# 2025-01-01 12:00:00 [axiom-log] starting up
+# 2025-01-01 12:00:03 [axiom-log] sysmon is up, starting log collection
+# 2025-01-01 12:00:03 [axiom-log] polling http://axiom:8080/api/sysmon-logs every 5s → /var/log/axiom/axiom.log
+```
+
+> **Prevention:** Always make sure `log_watcher.py` exists as a file on the host before running `docker compose up` for the first time. You can clone the repo and it will be present, or create it manually using the steps above.
+
+---
+
 ## License
 
 MIT
