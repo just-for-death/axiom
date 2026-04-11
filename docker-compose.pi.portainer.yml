@@ -41,13 +41,6 @@ services:
         max-size: "20m"
         max-file: "3"
 
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7655/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-
     labels:
       - "com.axiom.role=pi-agent"
       - "com.axiom.version=1.1"

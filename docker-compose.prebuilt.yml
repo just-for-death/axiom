@@ -1,10 +1,4 @@
-# AXIOM — Prebuilt compose
-# Uses prebuilt image from GHCR
-#
-# Quick start:
-#   docker compose -f docker-compose.prebuilt.yml up -d
-#   open http://localhost:7654
-#   No .env file needed — all defaults are hardcoded below
+
 
 services:
 
@@ -42,13 +36,6 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
 
     labels:
       - "com.axiom.version=1.0"
