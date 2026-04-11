@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json .
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY index.html .
 COPY dashboard.html .
 COPY vite.config.js .
@@ -26,7 +26,6 @@ RUN apt-get update && \
         smartmontools \
         util-linux \
         procps \
-        curl \
         docker.io \
         systemd \
     && rm -rf /var/lib/apt/lists/*
@@ -45,7 +44,7 @@ ENV GOTIFY_HOST=""
 
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:8080/health")' || exit 1
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", \
      "--log-level", "warning", "--workers", "1"]

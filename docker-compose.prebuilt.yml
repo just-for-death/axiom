@@ -1,15 +1,15 @@
-# AXIOM Log Server — prebuilt image from Docker Hub
-# Uses: justxforxdocker/axiom:latest
+# AXIOM — Prebuilt compose
+# Uses prebuilt image from GHCR
 #
 # Quick start:
-#   cp .env.example .env
 #   docker compose -f docker-compose.prebuilt.yml up -d
 #   open http://localhost:7654
+#   No .env file needed — all defaults are hardcoded below
 
 services:
 
   axiom:
-    image: justxforxdocker/axiom:latest
+    image: ghcr.io/just-for-death/axiom/axiom:latest
     container_name: axiom
     restart: unless-stopped
     user: root
@@ -17,15 +17,15 @@ services:
     privileged: true
 
     ports:
-      - "${AXIOM_PORT:-7654}:8080"
+      - "7654:8080"
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
     environment:
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
-      - GOTIFY_HOST=${GOTIFY_HOST:-}
-      - GOTIFY_TOKEN=${GOTIFY_TOKEN:-}
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - GOTIFY_HOST=
+      - GOTIFY_TOKEN=
 
     volumes:
       - /var/log:/host/log:ro
@@ -74,13 +74,12 @@ services:
       - "com.axiom.role=log-collector"
 
 
-
   axiom-dashboard:
     image: nginx:alpine
     container_name: axiom-dashboard
     restart: unless-stopped
     ports:
-      - "${DASHBOARD_PORT:-7656}:80"
+      - "7656:80"
     volumes:
       - ./dashboard.html:/usr/share/nginx/html/index.html:ro
       - ./dashboard.html:/usr/share/nginx/html/dashboard.html:ro
@@ -98,7 +97,8 @@ services:
       retries: 3
     labels:
       - "com.axiom.role=dashboard"
-      
+
+
 volumes:
   axiom-logs:
     driver: local
