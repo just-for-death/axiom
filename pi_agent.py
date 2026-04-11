@@ -17,7 +17,7 @@ import os
 import re
 import json
 import time
-import subprocess
+import subprocess  # nosec B404
 import collections
 from pathlib import Path
 from datetime import datetime
@@ -26,55 +26,73 @@ from typing import Optional
 import psutil
 import httpx
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # ── Config ───────────────────────────────────────────────────────────────────
 AGENT_VERSION = "1.1"
-NODE_NAME     = os.getenv("NODE_NAME",   "raspberry-pi")
-NODE_ROLE     = os.getenv("NODE_ROLE",   "agent")
-OLLAMA_HOST   = os.getenv("OLLAMA_HOST", "").rstrip("/")
-OLLAMA_MODEL  = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
-LOG_ROOT      = Path("/var/log")
-BOOT_TIME     = psutil.boot_time()
+NODE_NAME = os.getenv("NODE_NAME", "raspberry-pi")
+NODE_ROLE = os.getenv("NODE_ROLE", "agent")
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "").rstrip("/")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+LOG_ROOT = Path("/var/log")
+BOOT_TIME = psutil.boot_time()
 
-app = FastAPI(title="AXIOM-Pi-Agent", version=AGENT_VERSION, docs_url=None, redoc_url=None)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(
+    title="AXIOM-Pi-Agent", version=AGENT_VERSION, docs_url=None, redoc_url=None
+)
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+)
 
 # ── App log ──────────────────────────────────────────────────────────────────
 _APP_LOG: collections.deque = collections.deque(maxlen=500)
+
 
 def _app_log(msg: str, level: str = "INFO"):
     entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [{level}] {msg}"
     _APP_LOG.append(entry)
     print(entry, flush=True)
 
-_app_log(f"AXIOM Pi Agent v{AGENT_VERSION} starting — node:{NODE_NAME} ollama:{OLLAMA_HOST or 'not set'}")
+
+_app_log(
+    f"AXIOM Pi Agent v{AGENT_VERSION} starting — node:{NODE_NAME} ollama:{OLLAMA_HOST or 'not set'}"
+)
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _run(cmd: list, timeout: int = 10) -> str:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, errors="replace")
+        r = subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, timeout=timeout, errors="replace"
+        )
         return r.stdout
     except Exception:
         return ""
+
 
 def _fmt_uptime(s: int) -> str:
     d, s = divmod(s, 86400)
     h, s = divmod(s, 3600)
     m, s = divmod(s, 60)
-    if d:  return f"{d}d {h}h {m}m"
-    if h:  return f"{h}h {m}m"
+    if d:
+        return f"{d}d {h}h {m}m"
+    if h:
+        return f"{h}h {m}m"
     return f"{m}m {s}s"
 
+
 def _fmt_bytes(b: float) -> str:
-    for unit in ("B","KB","MB","GB","TB"):
-        if b < 1024: return f"{b:.1f} {unit}"
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if b < 1024:
+            return f"{b:.1f} {unit}"
         b /= 1024
     return f"{b:.1f} PB"
 
+
 # ── Pi-specific ──────────────────────────────────────────────────────────────
+
 
 def _pi_temp() -> Optional[float]:
     for path in [
@@ -83,46 +101,53 @@ def _pi_temp() -> Optional[float]:
     ]:
         try:
             return round(int(Path(path).read_text().strip()) / 1000, 1)
-        except Exception:
+        except Exception:  # nosec B110
             pass
     try:
         sensors = psutil.sensors_temperatures()
         for key in ("cpu_thermal", "coretemp", "acpitz"):
             if key in sensors and sensors[key]:
                 return round(sensors[key][0].current, 1)
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return None
+
 
 def _pi_model() -> str:
     try:
         return Path("/proc/device-tree/model").read_text().strip().rstrip("\x00")
-    except Exception:
+    except Exception:  # nosec B110
         pass
     try:
         for line in Path("/proc/cpuinfo").read_text().splitlines():
             if line.startswith("Model"):
                 return line.split(":", 1)[-1].strip()
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return "Raspberry Pi"
+
 
 def _pi_throttle() -> dict:
     """
     Tries vcgencmd first, then falls back to sysfs (works in privileged container).
     Bits: 0x1=under-voltage  0x4=throttled  0x8=soft-temp-limit
     """
-    status = {"throttled": False, "under_voltage": False, "soft_temp_limit": False, "raw": None}
+    status = {
+        "throttled": False,
+        "under_voltage": False,
+        "soft_temp_limit": False,
+        "raw": None,
+    }
 
     out = _run(["vcgencmd", "get_throttled"])
     if out.strip() and "=" in out:
         status["raw"] = out.strip()
         try:
             val = int(out.strip().split("=")[-1], 16)
-            status["throttled"]       = bool(val & 0x4)
-            status["under_voltage"]   = bool(val & 0x1)
+            status["throttled"] = bool(val & 0x4)
+            status["under_voltage"] = bool(val & 0x1)
             status["soft_temp_limit"] = bool(val & 0x8)
-        except Exception:
+        except Exception:  # nosec B110
             pass
         return status
 
@@ -135,43 +160,51 @@ def _pi_throttle() -> dict:
             if raw:
                 status["raw"] = raw
                 val = int(raw, 16)
-                status["throttled"]       = bool(val & 0x4)
-                status["under_voltage"]   = bool(val & 0x1)
+                status["throttled"] = bool(val & 0x4)
+                status["under_voltage"] = bool(val & 0x1)
                 status["soft_temp_limit"] = bool(val & 0x8)
                 return status
-        except Exception:
+        except Exception:  # nosec B110
             pass
     return status
+
 
 def _pi_freq() -> dict:
     out = _run(["vcgencmd", "measure_clock", "arm"])
     if out.strip() and "=" in out:
         try:
             return {"arm_mhz": round(int(out.strip().split("=")[-1]) / 1e6, 0)}
-        except Exception:
+        except Exception:  # nosec B110
             pass
     try:
         f = psutil.cpu_freq()
-        if f: return {"arm_mhz": round(f.current, 0)}
-    except Exception:
+        if f:
+            return {"arm_mhz": round(f.current, 0)}
+    except Exception:  # nosec B110
         pass
     return {"arm_mhz": None}
 
+
 # ── Metrics ──────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/metrics")
 async def get_metrics():
-    cpu      = psutil.cpu_percent(interval=0.3)
-    mem      = psutil.virtual_memory()
-    swap     = psutil.swap_memory()
-    net_io   = psutil.net_io_counters()
+    cpu = psutil.cpu_percent(interval=0.3)
+    mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    net_io = psutil.net_io_counters()
     uptime_s = int(time.time() - BOOT_TIME)
     load1, load5, load15 = psutil.getloadavg()
 
     # Read host disk partitions from /proc/1/mounts (host mount namespace).
     # psutil.disk_partitions() only sees the container namespace — useless here.
-    _MOUNT_OK = re.compile(r"^(/$|/boot(/firmware)?|/mnt/|/media/|/home/|/opt/|/data/|/storage/)")
-    _SKIP_FS  = re.compile(r"^(overlay|tmpfs|devtmpfs|shm|cgroup|proc|sysfs|none|squashfs|autofs)")
+    _MOUNT_OK = re.compile(
+        r"^(/$|/boot(/firmware)?|/mnt/|/media/|/home/|/opt/|/data/|/storage/)"
+    )
+    _SKIP_FS = re.compile(
+        r"^(overlay|tmpfs|devtmpfs|shm|cgroup|proc|sysfs|none|squashfs|autofs)"
+    )
     raw_mounts = []
     for mounts_file in ["/proc/1/mounts", "/proc/mounts"]:
         try:
@@ -179,7 +212,7 @@ async def get_metrics():
                 raw_mounts = f.readlines()
             if raw_mounts:
                 break
-        except Exception:
+        except Exception:  # nosec B110
             pass
     seen: set = set()
     disk_parts = []
@@ -199,101 +232,122 @@ async def get_metrics():
         seen.add(mp)
         try:
             u = psutil.disk_usage(mp)
-            disk_parts.append({
-                "mount": mp, "device": dev, "fstype": fstype,
-                "total": u.total, "used": u.used, "free": u.free, "percent": u.percent,
-            })
-        except Exception:
+            disk_parts.append(
+                {
+                    "mount": mp,
+                    "device": dev,
+                    "fstype": fstype,
+                    "total": u.total,
+                    "used": u.used,
+                    "free": u.free,
+                    "percent": u.percent,
+                }
+            )
+        except Exception:  # nosec B110
             pass
 
     # Normalise disk entries to _gb fields (mirrors main.py format)
     disks_normalised = []
     for d in disk_parts:
-        disks_normalised.append({
-            "mount":    d["mount"],
-            "device":   d.get("device"),
-            "fstype":   d.get("fstype"),
-            "total_gb": round(d["total"] / 1e9, 1),
-            "used_gb":  round(d["used"]  / 1e9, 1),
-            "free_gb":  round(d["free"]  / 1e9, 1),
-            "percent":  d["percent"],
-        })
+        disks_normalised.append(
+            {
+                "mount": d["mount"],
+                "device": d.get("device"),
+                "fstype": d.get("fstype"),
+                "total_gb": round(d["total"] / 1e9, 1),
+                "used_gb": round(d["used"] / 1e9, 1),
+                "free_gb": round(d["free"] / 1e9, 1),
+                "percent": d["percent"],
+            }
+        )
 
     # Normalise freq: expose current_mhz so fleet dashboard works uniformly
     raw_freq = _pi_freq()
     freq_normalised = None
     if raw_freq and raw_freq.get("arm_mhz") is not None:
-        freq_normalised = {"current_mhz": raw_freq["arm_mhz"], "arm_mhz": raw_freq["arm_mhz"]}
+        freq_normalised = {
+            "current_mhz": raw_freq["arm_mhz"],
+            "arm_mhz": raw_freq["arm_mhz"],
+        }
 
     return {
-        "node":         NODE_NAME,
-        "role":         NODE_ROLE,
-        "model":        _pi_model(),
-        "uptime_s":     uptime_s,
+        "node": NODE_NAME,
+        "role": NODE_ROLE,
+        "model": _pi_model(),
+        "uptime_s": uptime_s,
         "uptime_human": _fmt_uptime(uptime_s),
-        "cpu_percent":  cpu,
-        "cpu_count":    psutil.cpu_count(logical=True),
+        "cpu_percent": cpu,
+        "cpu_count": psutil.cpu_count(logical=True),
         # Flat load fields — mirrors main.py format
-        "load_1":  round(load1,  2),
-        "load_5":  round(load5,  2),
+        "load_1": round(load1, 2),
+        "load_5": round(load5, 2),
         "load_15": round(load15, 2),
         # Keep nested load for any existing callers
-        "load": {"1m": round(load1,2), "5m": round(load5,2), "15m": round(load15,2)},
+        "load": {"1m": round(load1, 2), "5m": round(load5, 2), "15m": round(load15, 2)},
         "memory": {
             # _gb fields — mirrors main.py format
             "total_gb": round(mem.total / 1e9, 1),
-            "used_gb":  round(mem.used  / 1e9, 1),
-            "free_gb":  round(mem.free  / 1e9, 1),
-            "percent":  mem.percent,
+            "used_gb": round(mem.used / 1e9, 1),
+            "free_gb": round(mem.free / 1e9, 1),
+            "percent": mem.percent,
             # Raw bytes kept for any existing callers
-            "total":   mem.total,
-            "used":    mem.used,
-            "free":    mem.free,
-            "cached":  getattr(mem, "cached", 0),
+            "total": mem.total,
+            "used": mem.used,
+            "free": mem.free,
+            "cached": getattr(mem, "cached", 0),
             "buffers": getattr(mem, "buffers", 0),
         },
         "swap": {
             "total_gb": round(swap.total / 1e9, 1),
-            "used_gb":  round(swap.used  / 1e9, 1),
-            "percent":  swap.percent,
-            "total":    swap.total,
-            "used":     swap.used,
-            "free":     swap.free,
+            "used_gb": round(swap.used / 1e9, 1),
+            "percent": swap.percent,
+            "total": swap.total,
+            "used": swap.used,
+            "free": swap.free,
         },
         "disks": disks_normalised,
         "network": {
-            "bytes_sent":    net_io.bytes_sent,
-            "bytes_recv":    net_io.bytes_recv,
-            "packets_sent":  net_io.packets_sent,
-            "packets_recv":  net_io.packets_recv,
+            "bytes_sent": net_io.bytes_sent,
+            "bytes_recv": net_io.bytes_recv,
+            "packets_sent": net_io.packets_sent,
+            "packets_recv": net_io.packets_recv,
         },
         "temperature_c": _pi_temp(),
-        "throttle":      _pi_throttle(),
-        "freq":          freq_normalised,
-        "fetched_at":    datetime.now().isoformat(),
+        "throttle": _pi_throttle(),
+        "freq": freq_normalised,
+        "fetched_at": datetime.now().isoformat(),
     }
 
+
 # ── Health ───────────────────────────────────────────────────────────────────
+
 
 @app.get("/health")
 async def health():
     return {
-        "status": "ok", "version": AGENT_VERSION,
-        "node": NODE_NAME, "role": NODE_ROLE,
-        "log_root": str(LOG_ROOT), "log_exists": LOG_ROOT.exists(),
+        "status": "ok",
+        "version": AGENT_VERSION,
+        "node": NODE_NAME,
+        "role": NODE_ROLE,
+        "log_root": str(LOG_ROOT),
+        "log_exists": LOG_ROOT.exists(),
     }
 
+
 # ── Sysmon ───────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/sysmon-logs")
 async def get_sysmon_logs():
     return {"lines": list(_APP_LOG), "count": len(_APP_LOG)}
 
+
 # ── Log sources ──────────────────────────────────────────────────────────────
 
 LOG_SOURCES = {
     "syslog": {
-        "label": "System", "desc": "Daemons · kernel events",
+        "label": "System",
+        "desc": "Daemons · kernel events",
         # journald-first — this Pi has no syslog file, only journald
         "files": ["syslog", "messages", "system.log"],
         "pattern": None,
@@ -301,46 +355,62 @@ LOG_SOURCES = {
         "journal_first": True,
     },
     "kernel": {
-        "label": "Kernel", "desc": "Hardware · drivers",
+        "label": "Kernel",
+        "desc": "Hardware · drivers",
         "files": ["kern.log", "kern.log.1", "messages"],
         "pattern": None,
         "journal_args": ["-k"],
         "journal_first": True,
     },
     "auth": {
-        "label": "Auth / Security", "desc": "SSH · sudo · logins",
+        "label": "Auth / Security",
+        "desc": "SSH · sudo · logins",
         "files": ["auth.log", "auth.log.1", "secure"],
         "pattern": None,
         "journal_args": ["-t", "sudo", "-t", "sshd", "-t", "pam", "-t", "login"],
         "journal_first": True,
     },
     "docker": {
-        "label": "Docker", "desc": "Container logs",
+        "label": "Docker",
+        "desc": "Container logs",
         "files": [],
         "pattern": r"(docker|containerd|container)",
         "journal_args": ["-u", "docker", "-u", "containerd"],
         "journal_first": True,
     },
     "disk": {
-        "label": "Disk / Storage", "desc": "Storage · I/O",
+        "label": "Disk / Storage",
+        "desc": "Storage · I/O",
         "files": ["syslog", "kern.log", "messages"],
         "pattern": r"(sd[a-z]|mmcblk|nvme|EXT4|XFS|BTRFS|I/O error|blk_|scsi)",
         "journal_args": ["-k"],
         "journal_first": True,
     },
     "boot": {
-        "label": "Boot", "desc": "Boot · dmesg",
+        "label": "Boot",
+        "desc": "Boot · dmesg",
         "files": ["boot.log", "dmesg"],
         "pattern": None,
         "journal_args": ["-b"],
         "journal_first": True,
     },
     "casaos": {
-        "label": "CasaOS", "desc": "CasaOS app & service logs",
+        "label": "CasaOS",
+        "desc": "CasaOS app & service logs",
         "files": [],
         "pattern": None,
-        "journal_args": ["-u", "casaos", "-u", "casaos-gateway", "-u", "casaos-user-service",
-                         "-u", "casaos-app-management", "-u", "runit"],
+        "journal_args": [
+            "-u",
+            "casaos",
+            "-u",
+            "casaos-gateway",
+            "-u",
+            "casaos-user-service",
+            "-u",
+            "casaos-app-management",
+            "-u",
+            "runit",
+        ],
         "journal_first": True,
         "casaos_log_dir": "/var/log/casaos",
     },
@@ -348,11 +418,13 @@ LOG_SOURCES = {
 
 JOURNAL_DIRS = ["/run/log/journal", "/var/log/journal"]
 
+
 def _filter(lines: list, pattern: Optional[str]) -> list:
     if not pattern:
         return lines
     rx = re.compile(pattern, re.IGNORECASE)
-    return [l for l in lines if rx.search(l)]
+    return [line for line in lines if rx.search(line)]
+
 
 def read_log_tail(filename: str, lines: int, pattern=None) -> list:
     path = LOG_ROOT / filename
@@ -360,21 +432,30 @@ def read_log_tail(filename: str, lines: int, pattern=None) -> list:
         return []
     try:
         fetch = lines * 4 if pattern else lines
-        r = subprocess.run(["tail", "-n", str(fetch), str(path)],
-                           capture_output=True, text=True, timeout=10, errors="replace")
+        r = subprocess.run(  # nosec B607
+            ["tail", "-n", str(fetch), str(path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            errors="replace",
+        )
         return _filter(r.stdout.splitlines(), pattern)[-lines:]
     except Exception:
         return []
+
 
 def read_journal(lines: int, args: Optional[list] = None, pattern=None) -> list:
     """Read from journald. Calls journalctl directly without -D — works inside
     privileged containers where the host journal is accessible via /run/log/journal."""
     fetch = lines * 4 if pattern else lines
-    cmd = (["journalctl", "--no-pager", "-q", "--output=short-iso", f"-n{fetch}"]
-           + (args or []))
+    cmd = ["journalctl", "--no-pager", "-q", "--output=short-iso", f"-n{fetch}"] + (
+        args or []
+    )
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15, errors="replace")
-        out = [l for l in r.stdout.splitlines() if l and not l.startswith("--")]
+        r = subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, timeout=15, errors="replace"
+        )
+        out = [line for line in r.stdout.splitlines() if line and not line.startswith("--")]
         if out:
             return _filter(out, pattern)[-lines:]
     except FileNotFoundError:
@@ -383,23 +464,27 @@ def read_journal(lines: int, args: Optional[list] = None, pattern=None) -> list:
         _app_log(f"journalctl error: {e}", "WARN")
     return []
 
+
 def read_dmesg(lines: int, pattern=None) -> list:
     for cmd in [["dmesg", "-T"], ["dmesg"]]:
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=12, errors="replace")
+            r = subprocess.run(  # nosec B603
+                cmd, capture_output=True, text=True, timeout=12, errors="replace"
+            )
             out = r.stdout.splitlines()
             if out:
                 return _filter(out, pattern)[-lines:]
-        except Exception:
+        except Exception:  # nosec B112
             continue
     return []
+
 
 def read_docker_logs(lines: int) -> list:
     sock = Path("/var/run/docker.sock")
     if sock.exists():
         try:
             ps = _run(["docker", "ps", "--format", "{{.Names}}\t{{.Status}}"])
-            containers = [l.split("\t")[0] for l in ps.splitlines() if l.strip()]
+            containers = [line.split("\t")[0] for line in ps.splitlines() if line.strip()]
             results = []
             for name in containers[:8]:
                 logs = _run(["docker", "logs", "--tail", "30", "--timestamps", name])
@@ -407,10 +492,11 @@ def read_docker_logs(lines: int) -> list:
                     results.append(f"[{name}] {line}")
             if results:
                 return results[-lines:]
-        except Exception:
+        except Exception:  # nosec B110
             pass
     # fallback: journalctl
     return read_journal(lines, ["-u", "docker", "-u", "containerd"])
+
 
 def read_casaos_logs(lines: int) -> list:
     """Read CasaOS log files directly. Files are root-owned so privileged is required."""
@@ -418,10 +504,17 @@ def read_casaos_logs(lines: int) -> list:
     # Main CasaOS service logs
     log_dir = Path("/var/log/casaos")
     if log_dir.exists():
-        for logfile in sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)[:5]:
+        for logfile in sorted(
+            log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True
+        )[:5]:
             try:
-                r = subprocess.run(["tail", "-n", str(max(lines // 3, 50)), str(logfile)],
-                                   capture_output=True, text=True, timeout=8, errors="replace")
+                r = subprocess.run(  # nosec B607
+                    ["tail", "-n", str(max(lines // 3, 50)), str(logfile)],
+                    capture_output=True,
+                    text=True,
+                    timeout=8,
+                    errors="replace",
+                )
                 for line in r.stdout.splitlines():
                     if line.strip():
                         results.append(f"[{logfile.stem}] {line}")
@@ -434,12 +527,17 @@ def read_casaos_logs(lines: int) -> list:
             current = svc_dir / "current"
             if current.exists():
                 try:
-                    r = subprocess.run(["tail", "-n", "30", str(current)],
-                                       capture_output=True, text=True, timeout=5, errors="replace")
+                    r = subprocess.run(  # nosec B607
+                        ["tail", "-n", "30", str(current)],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                        errors="replace",
+                    )
                     for line in r.stdout.splitlines():
                         if line.strip():
                             results.append(f"[runit/{svc_dir.name}] {line}")
-                except Exception:
+                except Exception:  # nosec B110
                     pass
     return results[-lines:] if results else []
 
@@ -447,7 +545,7 @@ def read_casaos_logs(lines: int) -> list:
 def read_log_source(log_type: str, lines: int) -> list:
     if log_type not in LOG_SOURCES:
         return [f"[Unknown log type: {log_type}]"]
-    src     = LOG_SOURCES[log_type]
+    src = LOG_SOURCES[log_type]
     pattern = src.get("pattern")
 
     # Docker: try socket first (needs docker CLI), then journal
@@ -460,7 +558,9 @@ def read_log_source(log_type: str, lines: int) -> list:
         if result:
             return result
         # last resort: dmesg filtered for container references
-        return read_dmesg(lines, r"(docker|containerd)") or                [f"[No docker logs found — journal and socket both unavailable on {NODE_NAME}]"]
+        return read_dmesg(lines, r"(docker|containerd)") or [
+            f"[No docker logs found — journal and socket both unavailable on {NODE_NAME}]"
+        ]
 
     # CasaOS: file logs + journal
     if log_type == "casaos":
@@ -497,7 +597,9 @@ def read_log_source(log_type: str, lines: int) -> list:
 
     return [f"[No '{log_type}' logs found on {NODE_NAME}]"]
 
+
 # ── Sources endpoint ─────────────────────────────────────────────────────────
+
 
 @app.get("/api/sources")
 async def get_sources():
@@ -505,18 +607,26 @@ async def get_sources():
     always_available = ("disk", "boot", "docker", "casaos", "syslog", "kernel", "auth")
     for key, src in LOG_SOURCES.items():
         exists = any((LOG_ROOT / f).exists() for f in src.get("files", []))
-        casaos_exists = Path(src.get("casaos_log_dir", "")).exists() if "casaos_log_dir" in src else False
+        casaos_exists = (
+            Path(src.get("casaos_log_dir", "")).exists()
+            if "casaos_log_dir" in src
+            else False
+        )
         result[key] = {
-            "label": src["label"], "desc": src["desc"],
+            "label": src["label"],
+            "desc": src["desc"],
             "available": exists or casaos_exists or key in always_available,
         }
     result["smart"] = {
-        "label": "S.M.A.R.T", "desc": "Drive health",
+        "label": "S.M.A.R.T",
+        "desc": "Drive health",
         "available": True,
     }
     return result
 
+
 # ── Logs endpoint ────────────────────────────────────────────────────────────
+
 
 @app.get("/api/logs/{log_type}")
 async def get_logs(log_type: str, lines: int = Query(default=100, ge=10, le=2000)):
@@ -524,55 +634,89 @@ async def get_logs(log_type: str, lines: int = Query(default=100, ge=10, le=2000
         return get_smart_data()
     if log_type not in LOG_SOURCES:
         raise HTTPException(404, f"Unknown log type: {log_type}")
-    src     = LOG_SOURCES[log_type]
+    src = LOG_SOURCES[log_type]
     entries = read_log_source(log_type, lines)
     return {
-        "type": log_type, "label": src["label"],
-        "lines": len(entries), "requested": lines,
-        "entries": entries, "fetched_at": datetime.now().isoformat(),
+        "type": log_type,
+        "label": src["label"],
+        "lines": len(entries),
+        "requested": lines,
+        "entries": entries,
+        "fetched_at": datetime.now().isoformat(),
         "node": NODE_NAME,
     }
 
+
 # ── S.M.A.R.T ────────────────────────────────────────────────────────────────
+
 
 def _smartctl_run(drive: str, extra: list = None) -> subprocess.CompletedProcess:
     cmd = ["smartctl", "-H", "-A"] + (extra or []) + [drive]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15, errors="replace")
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, timeout=15, errors="replace"
+    )
     out = result.stdout + result.stderr
     # If SMART is disabled on the device, enable it and retry once
-    if "SMART support is:     Disabled" in out or "Informational Exceptions (SMART) disabled" in out:
+    if (
+        "SMART support is:     Disabled" in out
+        or "Informational Exceptions (SMART) disabled" in out
+    ):
         enable_cmd = ["smartctl", "-s", "on"] + (extra or []) + [drive]
-        subprocess.run(enable_cmd, capture_output=True, text=True, timeout=10, errors="replace")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15, errors="replace")
+        subprocess.run(  # nosec B603
+            enable_cmd, capture_output=True, text=True, timeout=10, errors="replace"
+        )
+        result = subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, timeout=15, errors="replace"
+        )
     return result
+
 
 def _parse_smart(drive: str, result: subprocess.CompletedProcess) -> dict:
     output = result.stdout + result.stderr
-    health_line = next((l for l in output.splitlines() if "SMART overall-health" in l), "")
+    health_line = next(
+        (line for line in output.splitlines() if "SMART overall-health" in line), ""
+    )
     attrs, in_table = [], False
     for line in output.splitlines():
         if "ID#" in line and "ATTRIBUTE_NAME" in line:
-            in_table = True; continue
+            in_table = True
+            continue
         if in_table and line.strip():
             parts = line.split()
             if len(parts) >= 10:
                 name, raw = parts[1], parts[-1]
-                if any(k in name for k in ["Reallocated","Pending","Uncorrectable",
-                                            "Temperature","Power_On","Wear",
-                                            "Erase_Fail","Program_Fail"]):
+                if any(
+                    k in name
+                    for k in [
+                        "Reallocated",
+                        "Pending",
+                        "Uncorrectable",
+                        "Temperature",
+                        "Power_On",
+                        "Wear",
+                        "Erase_Fail",
+                        "Program_Fail",
+                    ]
+                ):
                     attrs.append(f"  {name}: {raw}")
-    return {"drive": drive, "health": health_line.strip() or "Unknown", "attrs": attrs[:12], "raw": output[:3000]}
+    return {
+        "drive": drive,
+        "health": health_line.strip() or "Unknown",
+        "attrs": attrs[:12],
+        "raw": output[:3000],
+    }
+
 
 # Transport retry order for USB/SAT bridges — ordered from most to least common
 _SAT_TRANSPORTS = [
-    ["-d", "scsi"],         # SCSI-mode USB enclosures (Seagate Expansion, WD Elements, etc.)
-    ["-d", "sat"],          # most common USB-SATA bridges (UAS)
-    ["-d", "sat,16"],       # bridges that need 16-byte ATA pass-through
-    ["-d", "sat,12"],       # bridges that need 12-byte ATA pass-through
-    ["-d", "auto"],         # let smartctl guess
-    ["-d", "usb"],          # generic USB mass-storage
-    ["-d", "usbjmicron"],   # JMicron-based USB bridges
-    ["-d", "usbsunplus"],   # SunPlus USB bridges
+    ["-d", "scsi"],  # SCSI-mode USB enclosures (Seagate Expansion, WD Elements, etc.)
+    ["-d", "sat"],  # most common USB-SATA bridges (UAS)
+    ["-d", "sat,16"],  # bridges that need 16-byte ATA pass-through
+    ["-d", "sat,12"],  # bridges that need 12-byte ATA pass-through
+    ["-d", "auto"],  # let smartctl guess
+    ["-d", "usb"],  # generic USB mass-storage
+    ["-d", "usbjmicron"],  # JMicron-based USB bridges
+    ["-d", "usbsunplus"],  # SunPlus USB bridges
     ["-d", "usbprolific"],  # Prolific USB bridges
     ["-d", "sat", "-T", "permissive"],  # permissive mode for picky bridges
 ]
@@ -580,9 +724,14 @@ _SAT_TRANSPORTS = [
 _VIRTUAL_DEVS = re.compile(r"(zram|loop|ram|dm-)")
 
 
-_REAL_MOUNT = re.compile(r"^(/$|/boot(/firmware)?|/mnt/|/media/|/home/|/data/|/storage/)")
+_REAL_MOUNT = re.compile(
+    r"^(/$|/boot(/firmware)?|/mnt/|/media/|/home/|/data/|/storage/)"
+)
 # Maps partition to parent disk: sda1→sda, mmcblk0p2→mmcblk0, nvme0n1p1→nvme0n1
-_PART_RE    = re.compile(r"^(/dev/(?:sd[a-z]+|hd[a-z]+|vd[a-z]+|nvme\d+n\d+|mmcblk\d+))(?:p\d+|\d+)$")
+_PART_RE = re.compile(
+    r"^(/dev/(?:sd[a-z]+|hd[a-z]+|vd[a-z]+|nvme\d+n\d+|mmcblk\d+))(?:p\d+|\d+)$"
+)
+
 
 def _get_mount_map() -> dict:
     """Return {'/dev/sda': '/mnt/Hannibal', ...} by reading the HOST mount table.
@@ -647,11 +796,15 @@ def get_smart_data() -> dict:
 
         # Skip obvious virtual devices immediately
         if _VIRTUAL_DEVS.search(drive):
-            unreadable.append({
-                "drive": drive, "mount": mount,
-                "health": "Virtual device — no SMART",
-                "attrs": [], "raw": "",
-            })
+            unreadable.append(
+                {
+                    "drive": drive,
+                    "mount": mount,
+                    "health": "Virtual device — no SMART",
+                    "attrs": [],
+                    "raw": "",
+                }
+            )
             continue
 
         try:
@@ -660,11 +813,17 @@ def get_smart_data() -> dict:
 
             # Round 1: retry disk device with SAT transport variants
             used_transport = None
-            if "SMART overall-health" not in output and "SMART Health Status" not in output:
+            if (
+                "SMART overall-health" not in output
+                and "SMART Health Status" not in output
+            ):
                 for flags in _SAT_TRANSPORTS:
                     retry = _smartctl_run(drive, flags)
                     retry_out = retry.stdout + retry.stderr
-                    if "SMART overall-health" in retry_out or "SMART Health Status" in retry_out:
+                    if (
+                        "SMART overall-health" in retry_out
+                        or "SMART Health Status" in retry_out
+                    ):
                         result = retry
                         output = retry_out
                         used_transport = " ".join(flags)
@@ -674,12 +833,18 @@ def get_smart_data() -> dict:
             # Round 2: try first partition (e.g. sda1) — some USB bridges only respond
             # to partition nodes, not the disk device (sda fails, sda1 works)
             used_partition = None
-            if "SMART overall-health" not in output and "SMART Health Status" not in output:
+            if (
+                "SMART overall-health" not in output
+                and "SMART Health Status" not in output
+            ):
                 part_suffix = "p1" if "mmcblk" in drive else "1"
                 part_dev = drive + part_suffix
                 part_result = _smartctl_run(part_dev)
                 part_out = part_result.stdout + part_result.stderr
-                if "SMART Health Status" in part_out or "SMART overall-health" in part_out:
+                if (
+                    "SMART Health Status" in part_out
+                    or "SMART overall-health" in part_out
+                ):
                     result = part_result
                     output = part_out
                     used_partition = part_dev
@@ -693,7 +858,9 @@ def get_smart_data() -> dict:
                 entry["via_partition"] = used_partition
 
             # Normalise both ATA and SCSI health strings
-            has_health = "SMART overall-health" in output or "SMART Health Status" in output
+            has_health = (
+                "SMART overall-health" in output or "SMART Health Status" in output
+            )
 
             def _extract_health(out: str) -> str:
                 # ATA: "SMART overall-health self-assessment test result: PASSED"
@@ -717,19 +884,44 @@ def get_smart_data() -> dict:
                 entry["health"] = "SD Card — SMART not supported"
                 unreadable.append(entry)
             else:
-                label = f"USB bridge — SMART unavailable ({mount})" if mount else "USB bridge — SMART unavailable"
+                label = (
+                    f"USB bridge — SMART unavailable ({mount})"
+                    if mount
+                    else "USB bridge — SMART unavailable"
+                )
                 entry["health"] = label
                 unreadable.append(entry)
-                _app_log(f"SMART: {drive} ({mount or 'unmounted'}) — no transport worked", "WARN")
+                _app_log(
+                    f"SMART: {drive} ({mount or 'unmounted'}) — no transport worked",
+                    "WARN",
+                )
 
         except FileNotFoundError:
-            unreadable.append({"drive": drive, "mount": mount, "health": "smartctl not installed", "attrs": [], "raw": ""})
+            unreadable.append(
+                {
+                    "drive": drive,
+                    "mount": mount,
+                    "health": "smartctl not installed",
+                    "attrs": [],
+                    "raw": "",
+                }
+            )
         except Exception as e:
-            unreadable.append({"drive": drive, "mount": mount, "health": f"Error: {e}", "attrs": [], "raw": str(e)})
+            unreadable.append(
+                {
+                    "drive": drive,
+                    "mount": mount,
+                    "health": f"Error: {e}",
+                    "attrs": [],
+                    "raw": str(e),
+                }
+            )
 
     return {"drives": smart_results, "unreadable": unreadable}
 
+
 # ── AI Analyze ───────────────────────────────────────────────────────────────
+
 
 def _build_prompt(log_type: str, log_lines: list) -> str:
     src = LOG_SOURCES.get(log_type, {"label": log_type.upper(), "desc": log_type})
@@ -743,19 +935,25 @@ def _build_prompt(log_type: str, log_lines: list) -> str:
         f"LOG SAMPLE:\n---\n{sample}\n---\n\n"
         "Respond in EXACTLY this format, nothing else:\n\n"
         "🔍 SUMMARY: <one sentence — what is happening in these logs>\n"
-        "⚠️  ISSUES: <specific errors or anomalies found — or \"None detected\">\n"
-        "🔧 ACTION: <one concrete command or fix — or \"No action needed\">\n"
+        '⚠️  ISSUES: <specific errors or anomalies found — or "None detected">\n'
+        '🔧 ACTION: <one concrete command or fix — or "No action needed">\n'
         "📊 SEVERITY: <NORMAL | WARNING | CRITICAL> — <one-sentence reason>"
     )
+
 
 @app.get("/api/analyze/{log_type}")
 async def analyze_logs(log_type: str, lines: int = Query(default=100, ge=10, le=500)):
     if not OLLAMA_HOST:
+
         async def no_ollama():
             yield "data: [Ollama not configured — set OLLAMA_HOST env var]\n\n"
             yield "data: [DONE]\n\n"
-        return StreamingResponse(no_ollama(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache"})
+
+        return StreamingResponse(
+            no_ollama(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache"},
+        )
 
     if log_type == "smart":
         smart = get_smart_data()
@@ -778,9 +976,16 @@ async def analyze_logs(log_type: str, lines: int = Query(default=100, ge=10, le=
     async def stream():
         try:
             async with httpx.AsyncClient(timeout=90.0) as client:
-                async with client.stream("POST", f"{OLLAMA_HOST}/api/generate",
-                    json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": True,
-                          "options": {"temperature": 0.1, "num_predict": 350}}) as resp:
+                async with client.stream(
+                    "POST",
+                    f"{OLLAMA_HOST}/api/generate",
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "prompt": prompt,
+                        "stream": True,
+                        "options": {"temperature": 0.1, "num_predict": 350},
+                    },
+                ) as resp:
                     if resp.status_code != 200:
                         yield f"data: [Ollama error {resp.status_code}]\n\n"
                         return
@@ -792,14 +997,17 @@ async def analyze_logs(log_type: str, lines: int = Query(default=100, ge=10, le=
                                     yield f"data: {j['response']}\n\n"
                                 if j.get("done"):
                                     break
-                            except Exception:
+                            except Exception:  # nosec B110
                                 pass
         except Exception as e:
             yield f"data: [Connection error: {e}]\n\n"
         yield "data: [DONE]\n\n"
 
-    return StreamingResponse(stream(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 _PI_DASHBOARD_HTML = r"""<head>
@@ -1916,13 +2124,16 @@ setTimeout(() => { window.__hideSplash && window.__hideSplash(); }, 1200);
 </html>
 """
 
+
 @app.get("/")
 async def pi_dashboard():
     """Serve the Pi node dashboard UI."""
     from fastapi.responses import HTMLResponse
+
     return HTMLResponse(content=_PI_DASHBOARD_HTML)
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 7655)))
+
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 7655)))  # nosec B104
